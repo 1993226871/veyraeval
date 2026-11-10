@@ -9,4 +9,4 @@ bash ./mvnw --batch-mode --no-transfer-progress verify
   npm run build
 )
 python -m pip wheel --no-deps ./sdks/python --wheel-dir .tools/release
-echo 'Source-built 0.1.0 jars, Python wheel and web assets are ready. No public package was published.'
+echo 'Source-built Java jars, Python wheel and web assets are ready. No public package was published.'

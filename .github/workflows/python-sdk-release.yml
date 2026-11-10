@@ -11,7 +11,7 @@ on:
         description: Exact version expected in pyproject.toml
         type: string
         required: true
-        default: '0.1.1'
+        default: '0.1.2'
       publish:
         description: Upload publicly to the selected registry
         type: boolean
@@ -72,7 +72,7 @@ jobs:
           python -m venv /tmp/sdk-consumer
           /tmp/sdk-consumer/bin/python -m pip install sdks/python/dist/*.whl
           cd /tmp
-          /tmp/sdk-consumer/bin/python -c "from agent_eval import AgentResult, EvaluationWorker, observe; from importlib.metadata import version; assert callable(EvaluationWorker.from_config); print(version('veyraeval-sdk'))"
+          /tmp/sdk-consumer/bin/python -c "from agent_eval import AgentResult, EvaluationWorker, PushClient, observe; from importlib.metadata import version; assert callable(EvaluationWorker.from_config) and callable(PushClient.login); print(version('veyraeval-sdk'))"
       - uses: actions/upload-artifact@v4
         with:
           name: python-sdk-distributions

@@ -77,7 +77,7 @@ class HttpTransport:
     def register(self, agent_id):
         identity = self.instance_id[:80] + ":" + hashlib.sha256(agent_id.encode()).hexdigest()[:32]
         request = {"agent_id": agent_id, "agent_version": self.agent_version, "instance_id": identity,
-                   "protocol_version": "1.0", "sdk_language": "PYTHON", "sdk_version": "0.1.1", "max_concurrency": 1}
+                   "protocol_version": "1.0", "sdk_language": "PYTHON", "sdk_version": "0.1.2", "max_concurrency": 1}
         validate_message("RegisterWorkerRequest", request)
         result = self._request("POST", "/workers/register", request)
         if not isinstance(result, dict) or set(result) != {"worker_id", "heartbeat_seconds", "lease_seconds"} or result["heartbeat_seconds"] != 15 or result["lease_seconds"] != 60:

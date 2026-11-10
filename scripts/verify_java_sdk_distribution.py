@@ -29,6 +29,8 @@ for module, artifact, required in (
             assert member in package.namelist(), f"Missing {member} in {path.name}"
             assert not any(name.startswith("io/agenteval/evaluation/") for name in package.namelist()), "Server code in SDK distribution"
             if not suffix:
+                if artifact == "veyraeval-sdk":
+                    assert "io/agenteval/sdk/PushClient.class" in package.namelist(), "Missing SDK push client"
                 embedded = ET.fromstring(package.read(f"META-INF/maven/{group}/{artifact}/pom.xml"))
                 assert embedded.findtext("m:parent/m:groupId", namespaces=NS) == group, f"Old parent coordinates in {path.name}"
                 actual = package.read("META-INF/LICENSE").decode("utf-8").replace("\r\n", "\n")

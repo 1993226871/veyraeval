@@ -89,7 +89,7 @@ Token 关闭弹窗后不能再次查看；在自己的密码管理器保存，�
 
 ## 5. 工作流分阶段执行
 
-工作流合入默认分支后，进入 Actions → Java SDK release preparation → Run workflow，版本填 `0.1.0`。
+工作流合入默认分支后，进入 Actions → Java SDK release preparation → Run workflow，版本填写 `main` 根 POM 中的版本。本轮主动上报版本为 `0.1.1`。
 
 | mode | 行为 | 凭据和审批 |
 | --- | --- | --- |

@@ -58,10 +58,10 @@ jobs:
       - run: python -m pytest sdks/python/tests -q
       - run: python -m unittest discover -s scripts/tests -p test_stage_maven_bundle.py -v
       - run: python -m pip wheel --no-deps ./sdks/python --wheel-dir .tools/release
-      - run: python scripts/verify_sdk_wheel.py .tools/release/veyraeval_sdk-0.1.1-py3-none-any.whl
+      - run: python scripts/verify_sdk_wheel.py .tools/release/veyraeval_sdk-0.1.2-py3-none-any.whl
       - name: Verify complete Python evaluation example against the built SDK
         run: |
-          python -m pip install --no-deps .tools/release/veyraeval_sdk-0.1.1-py3-none-any.whl
+          python -m pip install --no-deps .tools/release/veyraeval_sdk-0.1.2-py3-none-any.whl
           python -m unittest discover -s examples/python-evaluation-demo/tests -v
         env:
           PYTHONPATH: examples/python-evaluation-demo/src

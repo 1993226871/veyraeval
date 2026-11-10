@@ -56,7 +56,7 @@ public final class HttpWorkerTransport implements WorkerTransport {
     private record UploadedRun(UUID id) {}
     @Override public UUID register(UUID agent) {
         String identity=instance.substring(0,Math.min(80,instance.length()))+":"+hash(agent.toString()).substring(0,32);
-        var request=new RegisterWorkerRequest(agent,version,identity,"1.0","JAVA","0.1.0",1);
+        var request=new RegisterWorkerRequest(agent,version,identity,"1.0","JAVA","0.1.1",1);
         var registration=JsonSupport.decode(request("/workers/register",request,null),WorkerRegistration.class);
         if(registration.heartbeatSeconds()!=15 || registration.leaseSeconds()!=60) throw new WorkerRejectedException(502); return registration.workerId();
     }

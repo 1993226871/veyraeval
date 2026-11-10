@@ -2,10 +2,10 @@
 !platform/
 !platform/api/
 !platform/api/target/
-!platform/api/target/api-0.1.0.jar
+!platform/api/target/api-0.1.1.jar
 !platform/worker/
 !platform/worker/target/
-!platform/worker/target/worker-0.1.0.jar
+!platform/worker/target/worker-0.1.1.jar
 !web/
 !web/dist/
 !web/dist/**
