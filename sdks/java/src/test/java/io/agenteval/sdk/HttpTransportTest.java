@@ -29,6 +29,32 @@ class HttpTransportTest {
             assertThat(headers.get().getFirst("Content-Type")).isEqualTo("application/octet-stream");
         } finally { server.stop(0); }
     }
+    @Test void pushesCapturedCasesAndReplaysTheSameRun() throws Exception {
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        var report=UUID.randomUUID();
+        var bodies=new ConcurrentLinkedQueue<com.fasterxml.jackson.databind.JsonNode>();
+        server.createContext("/api/v1/sdk-runs:upload",exchange -> {
+            bodies.add(JsonSupport.tree(new String(exchange.getRequestBody().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)));
+            byte[] bytes=JsonSupport.encode(Map.of("id",report)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(202,bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+        server.start();
+        try(var client=new PushClient(URI.create("http://127.0.0.1:"+server.getAddress().getPort()),"fixture-key")) {
+            var run=client.startRun("regression","Order v2","orders","v2","orders-v1",UUID.randomUUID());
+            run.runCase("A","Query order",Map.of("id","A"),JsonSupport.value(Map.of("amount",100)),
+                () -> Telemetry.tool("query_order",() -> Map.of("amount",100)));
+            assertThat(run.submit()).isEqualTo(report);
+            assertThat(run.submit()).isEqualTo(report);
+            var first=bodies.remove();
+            assertThat(bodies.remove()).isEqualTo(first);
+            assertThat(first.at("/cases/0/events")).hasSize(4);
+            assertThat(first.at("/cases/0/events/1/span_kind").asText()).isEqualTo("tool");
+            assertThat(first.at("/cases/0/output/amount").asInt()).isEqualTo(100);
+            assertThat(first.toString()).doesNotContain("fixture-key");
+        } finally { server.stop(0); }
+    }
     @Test void limitsResponseBodyBeforeFullyBufferingIt() throws Exception {
         var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
         server.createContext("/api/v1",exchange -> { exchange.getRequestBody().readAllBytes(); exchange.sendResponseHeaders(200,1024*1024+1); try { exchange.getResponseBody().write(new byte[1024*1024+1]); } finally { exchange.close(); } }); server.start();

@@ -21,10 +21,13 @@ define('Problem', { type: text, title: text, status: integer, detail: text, code
 define('CurrentUser', { user_id: uuid, workspace_id: uuid, email: { type: 'string', format: 'email' }, admin: bool, must_change_password: bool });
 define('CsrfToken', { header_name: text, token: text });
 define('AccountCreate', { email: { type: 'string', format: 'email' }, temporary_password: { type: 'string', format: 'password', minLength: 12 } });
+define('SdkProject', { id: uuid, name: text, auto_evaluate: bool });
+define('SdkRunUpload', { run_id: uuid, namespace: text, name: text, agent_name: text, agent_version: text, dataset_version: text, suite_version_id: uuid, cases: array(object({ case_id: text, instruction: text, input: jsonValue, expected: jsonValue, output: jsonValue, status: enumeration(['SUCCEEDED','FAILED','TIMED_OUT']), dropped_count: integer, events: array(ref('TraceEvent')) }, ['case_id','instruction','input','output','status','dropped_count','events'])) });
 const kind = enumeration(['DATASET', 'EVALUATOR', 'SUITE']);
 define('CatalogResource', { id: uuid, kind, name: text, content: jsonValue, revision: integer, archived: bool });
 define('ResourceSummary', { id: uuid, kind, name: text, revision: integer, archived: bool });
 define('ExperimentSummary', { id: uuid, workspace_id: uuid, agent_id: uuid, agent_version: text, dataset_version_id: uuid, suite_version_id: uuid, repeat_count: integer, deadline: date, status: text, source_experiment_id: nullable(uuid), agent_name: text, dataset_name: text, dataset_version_number: integer, suite_name: text, suite_version_number: integer, case_count: integer, task_count: integer, created_at: date });
+Object.assign(schemas.ExperimentSummary.properties,{ sdk_project_id:nullable(uuid), sdk_project:nullable(text), namespace:nullable(text), run_name:nullable(text), evaluation_authorized:nullable(bool) });
 define('CatalogCreate', { kind, name: text, content: jsonValue });
 define('CatalogUpdate', { revision: integer, name: text, content: jsonValue });
 define('PublishedVersion', { id: uuid, resource_id: uuid, kind, name: text, content: jsonValue, content_hash: text, number: integer });
@@ -94,7 +97,7 @@ define('DeletionStatus', { experiment_id: uuid, status: text, requested_at: date
 const spec = {
   openapi: '3.1.0', info: { title: 'VeyraEval Platform API', version: '0.1.0', description: 'Implemented browser and SDK HTTP contract. Session mutations require CSRF. Monetary integers use decimal strings in browser DTOs.' },
   servers: [{ url: '/' }], security: [{ session: [] }], paths: {},
-  components: { schemas, securitySchemes: { session: { type: 'apiKey', in: 'cookie', name: 'SESSION' }, csrf: { type: 'apiKey', in: 'header', name: 'X-CSRF-TOKEN' }, worker: { type: 'http', scheme: 'bearer' } },
+  components: { schemas, securitySchemes: { session: { type: 'apiKey', in: 'cookie', name: 'SESSION' }, csrf: { type: 'apiKey', in: 'header', name: 'X-CSRF-TOKEN' }, worker: { type: 'http', scheme: 'bearer' }, upload: { type: 'http', scheme: 'bearer' } },
     responses: { Rejected: { description: 'Request rejected with a scoped, non-secret problem code.', content: { 'application/problem+json': { schema: ref('Problem') } } } } },
 };
 const page = [{ name: 'offset', in: 'query', schema: { type: 'integer', minimum: 0, default: 0 } }, { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 25 } }];
@@ -128,6 +131,15 @@ op('get', '/api/v1/admin/users', 'listAccounts', null, array(ref('AdminAccount')
 op('post', '/api/v1/admin/users', 'createAccount', ref('AccountCreate'), ref('CurrentUser'), 201);
 op('get', '/api/v1/catalog', 'listResources', null, array(ref('CatalogResource')), 200, { query: [{ name: 'kind', in: 'query', required: true, schema: kind }, ...page] });
 op('get', '/api/v1/catalog-summaries', 'listResourceSummaries', null, array(ref('ResourceSummary')), 200, { query: [{ name: 'kind', in: 'query', required: true, schema: kind }, ...page] });
+op('post', '/api/v1/templates/starter-rules/copy', 'copyStarterRules', object({model_profile_id:uuid,price_version_id:uuid}), ref('PublishedVersion'));
+spec.paths['/api/v1/templates/starter-rules/copy'].post.requestBody.required = false;
+op('get', '/api/v1/sdk-projects', 'listSdkProjects', null, array(ref('SdkProject')));
+op('post', '/api/v1/sdk-projects', 'createSdkProject', object({name:text}), object({project:ref('SdkProject'),secret:text}), 201);
+op('put', '/api/v1/sdk-projects/{id}', 'configureSdkProject', object({auto_evaluate:bool}), null, 204);
+op('post', '/api/v1/sdk-projects/{id}/rotate', 'rotateSdkKey', null, object({secret:text}));
+op('post', '/api/v1/sdk-runs:upload', 'uploadSdkRun', ref('SdkRunUpload'), object({id:uuid}), 202, {security:[{upload:[]}]});
+op('get', '/api/v1/experiments/{id}/sdk-run', 'getSdkRun', null, object({id:uuid,project_id:uuid,project:text,namespace:text,name:text,phase:enumeration(['WAITING','PREPARING','SUBMITTED','CANCELLED']),estimate:ref('ExperimentEstimate')}));
+op('post', '/api/v1/experiments/{id}/sdk-run/evaluate', 'evaluateSdkRun', null, null, 202);
 op('get', '/api/v1/experiment-summaries', 'listExperimentSummaries', null, array(ref('ExperimentSummary')), 200, { query: page });
 op('get', '/api/v1/experiment-summaries/{id}', 'getExperimentSummary', null, ref('ExperimentSummary'));
 op('post', '/api/v1/catalog', 'createResource', ref('CatalogCreate'), ref('CatalogResource'), 201);

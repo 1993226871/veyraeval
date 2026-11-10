@@ -2,7 +2,7 @@
 
 本文根据当前源码整理，描述系统现在如何工作，不记录私人设计讨论。适合第一次接手仓库的开发者：先理解运行角色，再跟一次实验，最后按文件索引进入实现。
 
-工作台当前以“任务集”和“评分规则集”组织日常使用：任务与规则通过表单编辑，评分规则集整体发布。内部 EVALUATOR/SUITE 仍保存规则与集合的固定版本，确保历史实验可追溯；详见[工作台使用指南](guides/tasks-and-rule-sets.md)。
+工作台当前以“任务集”和“评分规则集”组织日常使用：应用端上报任务和轨迹，规则集以 JSON 整体发布。内部 EVALUATOR/SUITE 仍保存规则与集合的固定版本，确保历史实验可追溯；详见[工作台使用指南](guides/tasks-and-rule-sets.md)。
 
 ## 1. 一句话理解项目
 
@@ -151,10 +151,10 @@ flowchart TD
 下面只列入Git可分发源码/配置/测试/文档。排除`target/`、`node_modules/`、`.tools/`、本地spool、环境密钥和已停止跟踪的私人过程文档；并非把这些目录当作缺失的业务文件。
 
 <details>
-<summary>展开完整目录树：617个文件</summary>
+<summary>展开完整目录树：621个文件</summary>
 
 ```text
-veyraeval/
+.
 ├── .github/
 │   └── workflows/
 │       ├── java-sdk-release.yml
@@ -290,7 +290,8 @@ veyraeval/
 │   │   │       ├── catalog.py
 │   │   │       ├── cli.py
 │   │   │       ├── demo.py
-│   │   │       └── platform.py
+│   │   │       ├── platform.py
+│   │   │       └── push_demo.py
 │   │   ├── tests/
 │   │   │   ├── test_agent.py
 │   │   │   ├── test_evidence.py
@@ -332,7 +333,9 @@ veyraeval/
 │   │   │   │   │           │   └── ReevaluationController.java
 │   │   │   │   │           ├── experiments/
 │   │   │   │   │           │   ├── ExperimentConfiguration.java
-│   │   │   │   │           │   └── ExperimentController.java
+│   │   │   │   │           │   ├── ExperimentController.java
+│   │   │   │   │           │   ├── SdkRunController.java
+│   │   │   │   │           │   └── SdkRunService.java
 │   │   │   │   │           ├── identity/
 │   │   │   │   │           │   └── IdentityController.java
 │   │   │   │   │           ├── model/
@@ -656,7 +659,8 @@ veyraeval/
 │   │   │   │               ├── V020__runner_evidence_cleanup.sql
 │   │   │   │               ├── V021__evidence_retry_fairness.sql
 │   │   │   │               ├── V022__private_models_and_cny_wallets.sql
-│   │   │   │               └── V023__single_cny_billing.sql
+│   │   │   │               ├── V023__single_cny_billing.sql
+│   │   │   │               └── V024__sdk_push_runs.sql
 │   │   │   └── test/
 │   │   │       └── java/
 │   │   │           └── io/
@@ -812,6 +816,7 @@ veyraeval/
 │   │   │   │                   ├── FileSpool.java
 │   │   │   │                   ├── HttpWorkerTransport.java
 │   │   │   │                   ├── JsonSupport.java
+│   │   │   │                   ├── PushClient.java
 │   │   │   │                   ├── SpanScope.java
 │   │   │   │                   ├── TaskContext.java
 │   │   │   │                   ├── Telemetry.java
@@ -849,12 +854,14 @@ veyraeval/
 │       │       ├── __init__.py
 │       │       ├── context.py
 │       │       ├── contracts.py
+│       │       ├── push.py
 │       │       ├── spool.py
 │       │       ├── telemetry.py
 │       │       ├── transport.py
 │       │       └── worker.py
 │       ├── tests/
 │       │   ├── test_contracts.py
+│       │   ├── test_push.py
 │       │   ├── test_spool.py
 │       │   ├── test_telemetry.py
 │       │   ├── test_transport.py
@@ -889,9 +896,7 @@ veyraeval/
 │   │   │   │   ├── ResourceUsagePanel.test.tsx
 │   │   │   │   └── ResourceUsagePanel.tsx
 │   │   │   ├── agents/
-│   │   │   │   ├── AgentsPage.tsx
-│   │   │   │   ├── CredentialPanel.test.tsx
-│   │   │   │   └── CredentialPanel.tsx
+│   │   │   │   └── SdkProjectsPage.tsx
 │   │   │   ├── auth/
 │   │   │   │   ├── AuthPages.tsx
 │   │   │   │   ├── AuthProvider.tsx
@@ -904,7 +909,6 @@ veyraeval/
 │   │   │   │   ├── DatasetFields.tsx
 │   │   │   │   ├── PreviewPanel.test.tsx
 │   │   │   │   ├── PreviewPanel.tsx
-│   │   │   │   ├── RuleSetFields.tsx
 │   │   │   │   ├── ValueFields.test.tsx
 │   │   │   │   ├── ValueFields.tsx
 │   │   │   │   ├── pagination.test.ts
@@ -928,13 +932,13 @@ veyraeval/
 │   │   │   │   ├── money.test.ts
 │   │   │   │   └── money.ts
 │   │   │   └── reports/
-│   │   │       ├── CaseRecovery.test.tsx
 │   │   │       ├── CaseRecovery.tsx
 │   │   │       ├── ComparisonView.test.tsx
 │   │   │       ├── ComparisonView.tsx
 │   │   │       ├── ExperimentReport.test.tsx
 │   │   │       ├── ExperimentReport.tsx
 │   │   │       ├── HumanReviewPanel.tsx
+│   │   │       ├── ScoreTrend.tsx
 │   │   │       ├── TaskComparison.test.tsx
 │   │   │       ├── TaskComparison.tsx
 │   │   │       ├── TraceTree.test.tsx
@@ -1343,6 +1347,7 @@ veyraeval/
 | [`examples/python-evaluation-demo/src/order_agent/cli.py`](../examples/python-evaluation-demo/src/order_agent/cli.py) | local/demo/report命令、本人账号输入及终端隐藏密码登录。 |
 | [`examples/python-evaluation-demo/src/order_agent/demo.py`](../examples/python-evaluation-demo/src/order_agent/demo.py) | 创建资源与实验、启动SDK Worker、等待完整评分、下载轨迹及撤销临时凭据。 |
 | [`examples/python-evaluation-demo/src/order_agent/platform.py`](../examples/python-evaluation-demo/src/order_agent/platform.py) | 校验平台地址及TLS，处理Session/CSRF登录、目录发布和不泄露响应正文的API错误。 |
+| [`examples/python-evaluation-demo/src/order_agent/push_demo.py`](../examples/python-evaluation-demo/src/order_agent/push_demo.py) | 应用端执行订单回归，带任务和轨迹主动上报，并支持本地文件重放。 |
 | [`examples/python-evaluation-demo/tests/test_agent.py`](../examples/python-evaluation-demo/tests/test_agent.py) | Agent正误版本、取消、订单数据隔离及规则参考源测试。 |
 | [`examples/python-evaluation-demo/tests/test_evidence.py`](../examples/python-evaluation-demo/tests/test_evidence.py) | 真实SDK工具参数/中间结果打点及等待完整评分的行为测试。 |
 | [`examples/python-evaluation-demo/tests/test_platform.py`](../examples/python-evaluation-demo/tests/test_platform.py) | Session/CSRF、HTTPS地址约束及错误信息不泄露私有响应的测试。 |
@@ -1373,6 +1378,8 @@ veyraeval/
 | [`platform/api/src/main/java/io/agenteval/evaluation/ReevaluationController.java`](../platform/api/src/main/java/io/agenteval/evaluation/ReevaluationController.java) | 规则、LLM、Python评分、重评、试运行和人工复核HTTP接口；路由前缀`/api/v1/trial-evaluations/{trialId}`。 |
 | [`platform/api/src/main/java/io/agenteval/experiments/ExperimentConfiguration.java`](../platform/api/src/main/java/io/agenteval/experiments/ExperimentConfiguration.java) | 实验快照、任务状态、租约与删除生命周期的Spring Bean装配，将领域接口连接到实际仓储、网关或受控功能开关。 |
 | [`platform/api/src/main/java/io/agenteval/experiments/ExperimentController.java`](../platform/api/src/main/java/io/agenteval/experiments/ExperimentController.java) | 实验快照、任务状态、租约与删除生命周期HTTP接口；路由前缀`/api/v1`。 |
+| [`platform/api/src/main/java/io/agenteval/experiments/SdkRunController.java`](../platform/api/src/main/java/io/agenteval/experiments/SdkRunController.java) | 项目密钥、自动评测设置、应用上报和手动启动评测的 HTTP 入口。 |
+| [`platform/api/src/main/java/io/agenteval/experiments/SdkRunService.java`](../platform/api/src/main/java/io/agenteval/experiments/SdkRunService.java) | 鉴权并事务性接收整轮 SDK 数据，冻结任务版本，控制评分授权和上报幂等。 |
 | [`platform/api/src/main/java/io/agenteval/identity/IdentityController.java`](../platform/api/src/main/java/io/agenteval/identity/IdentityController.java) | 账号、密码和私人工作空间隔离HTTP接口；路由前缀`/api/v1`。 |
 | [`platform/api/src/main/java/io/agenteval/model/ModelController.java`](../platform/api/src/main/java/io/agenteval/model/ModelController.java) | 平台模型配置、密钥、调用计费和不确定状态HTTP接口；路由前缀`/api/v1/models`。 |
 | [`platform/api/src/main/java/io/agenteval/model/ModelViews.java`](../platform/api/src/main/java/io/agenteval/model/ModelViews.java) | 浏览器模型DTO转换，将64位价格、Token与credits转成十进制字符串，避免JavaScript精度损失。 |
@@ -1633,6 +1640,7 @@ veyraeval/
 | [`platform/infrastructure/src/main/resources/db/migration/V021__evidence_retry_fairness.sql`](../platform/infrastructure/src/main/resources/db/migration/V021__evidence_retry_fairness.sql) | Flyway V021：冻结重试公平性。扩展现有表、索引/触发器及数据迁移约束。 |
 | [`platform/infrastructure/src/main/resources/db/migration/V022__private_models_and_cny_wallets.sql`](../platform/infrastructure/src/main/resources/db/migration/V022__private_models_and_cny_wallets.sql) | 新增人民币钱包单位、私有模型归属及计费模式，支持零平台扣费的模型调用。 |
 | [`platform/infrastructure/src/main/resources/db/migration/V023__single_cny_billing.sql`](../platform/infrastructure/src/main/resources/db/migration/V023__single_cny_billing.sql) | 统一人民币微元计价，删除钱包单位列和历史模型模式，不改变余额及不可变账目数值。 |
+| [`platform/infrastructure/src/main/resources/db/migration/V024__sdk_push_runs.sql`](../platform/infrastructure/src/main/resources/db/migration/V024__sdk_push_runs.sql) | 添加 SDK 上报项目、数据集版本绑定和运行授权元数据。 |
 | [`platform/infrastructure/src/test/java/io/agenteval/administration/AuditIT.java`](../platform/infrastructure/src/test/java/io/agenteval/administration/AuditIT.java) | 资源预算、删除状态、审计和工作空间轻量列表的真实组件集成测试。检查`keepsAppendOnlyScopedMetadataWithoutSecretPayloads`等场景。 |
 | [`platform/infrastructure/src/test/java/io/agenteval/administration/OperationsIT.java`](../platform/infrastructure/src/test/java/io/agenteval/administration/OperationsIT.java) | 资源预算、删除状态、审计和工作空间轻量列表的真实组件集成测试。检查`migrationJobCompletesWithoutStartingApplicationAndIsRepeatable`等场景。 |
 | [`platform/infrastructure/src/test/java/io/agenteval/administration/ResourceLimitIT.java`](../platform/infrastructure/src/test/java/io/agenteval/administration/ResourceLimitIT.java) | 资源预算、删除状态、审计和工作空间轻量列表的真实组件集成测试。检查`enforcesConcurrentLimitsAtomically`、`enforcesFiftyOnlineWorkersIncludingOfflineReactivation`、`queuesBeyondTwentyRunningTrialsAndResumesAfterCompletion`等场景。 |
@@ -1766,6 +1774,7 @@ veyraeval/
 | [`sdks/java/src/main/java/io/agenteval/sdk/TransportException.java`](../sdks/java/src/main/java/io/agenteval/sdk/TransportException.java) | 用户Agent运行、打点与持久上传的显式异常`TransportException`，区分错误/冲突/限制类型，供上层稳定映射和处理。 |
 | [`sdks/java/src/main/java/io/agenteval/sdk/WorkerRejectedException.java`](../sdks/java/src/main/java/io/agenteval/sdk/WorkerRejectedException.java) | 用户Agent运行、打点与持久上传的显式异常`WorkerRejectedException`，区分错误/冲突/限制类型，供上层稳定映射和处理。 |
 | [`sdks/java/src/main/java/io/agenteval/sdk/WorkerTransport.java`](../sdks/java/src/main/java/io/agenteval/sdk/WorkerTransport.java) | 用户Agent运行、打点与持久上传的接口/仓储边界，定义读写或调用契约，分离领域服务与具体适配器。 |
+| [`sdks/java/src/main/java/io/agenteval/sdk/PushClient.java`](../sdks/java/src/main/java/io/agenteval/sdk/PushClient.java) | Java 应用侧运行、轨迹采集、整轮提交和重放文件。 |
 | [`sdks/java/src/test/java/io/agenteval/sdk/ArtifactCaptureTest.java`](../sdks/java/src/test/java/io/agenteval/sdk/ArtifactCaptureTest.java) | 用户Agent运行、打点与持久上传的单元/契约回归测试。检查`preservesBusinessOutputWhileAttachingLargeRedactedEvidence`、`explicitlySelectedFilesJoinTheCompletionManifest`等场景。 |
 | [`sdks/java/src/test/java/io/agenteval/sdk/AsyncContextTest.java`](../sdks/java/src/test/java/io/agenteval/sdk/AsyncContextTest.java) | 用户Agent运行、打点与持久上传的单元/契约回归测试。检查`propagatesOnlyExplicitCapturedContext`等场景。 |
 | [`sdks/java/src/test/java/io/agenteval/sdk/HttpTransportTest.java`](../sdks/java/src/test/java/io/agenteval/sdk/HttpTransportTest.java) | 用户Agent运行、打点与持久上传的单元/契约回归测试。检查`artifactUploadOmitsPlatformBearerAndAttemptHeaders`、`limitsResponseBodyBeforeFullyBufferingIt`、`responseBodyStallHasAnOverallDeadlineAndErrorsDoNotExposeSecrets`等场景。 |
@@ -1798,11 +1807,13 @@ veyraeval/
 | [`sdks/python/src/agent_eval/telemetry.py`](../sdks/python/src/agent_eval/telemetry.py) | contextvars Span上下文、装饰器/手动Span、脱敏、截断和结构化事件捕获。 |
 | [`sdks/python/src/agent_eval/transport.py`](../sdks/python/src/agent_eval/transport.py) | 平台HTTP客户端：注册、长轮询、租约心跳、事件批量上传、附件及结果提交。 |
 | [`sdks/python/src/agent_eval/worker.py`](../sdks/python/src/agent_eval/worker.py) | 配置文件/环境变量初始化，文件路径解析与Agent处理函数注册； 用户Agent Worker：领取任务、调用注册处理函数、异步结果、独立心跳、持久上传和安全收尾。 |
+| [`sdks/python/src/agent_eval/push.py`](../sdks/python/src/agent_eval/push.py) | Python 应用侧采集任务与轨迹，提交完整运行并重放已保存数据。 |
 | [`sdks/python/tests/test_contracts.py`](../sdks/python/tests/test_contracts.py) | Python单元/契约回归测试；检查`test_shared_contract_fixtures`。 |
 | [`sdks/python/tests/test_spool.py`](../sdks/python/tests/test_spool.py) | Python单元/契约回归测试；检查`test_ack_then_delete_and_record_overflow`、`test_execution_marker_survives_restart_without_storing_token`。 |
 | [`sdks/python/tests/test_telemetry.py`](../sdks/python/tests/test_telemetry.py) | Python单元/契约回归测试；检查`test_contextvars_keep_parallel_spans_separate`、`test_redaction_and_capture_failure_do_not_change_output`、`test_outside_worker_is_noop_and_exceptions_are_preserved`、`test_configured_secrets_are_removed_from_payload_keys_and_span_names`、`test_packaged_schemas_match_repository_contracts`。 |
 | [`sdks/python/tests/test_transport.py`](../sdks/python/tests/test_transport.py) | Python单元/契约回归测试；检查`test_lost_event_ack_replays_identical_ids_and_stops_heartbeat`、`test_error_does_not_echo_platform_secrets`、`test_each_registered_agent_has_a_distinct_instance_identity`、`test_deadline_cancels_before_fifteen_second_heartbeat`、`test_running_worker_stops_on_revoked_attempt_without_reinvoking_handler`。 |
 | [`sdks/python/tests/test_worker.py`](../sdks/python/tests/test_worker.py) | Python单元/契约回归测试；检查`test_duplicate_assignment_calls_handler_once`、`test_heartbeat_is_independent_and_cancellation_is_visible`、`test_rejected_started_and_restart_never_replay_handler`、`test_async_cancelled_handler_never_reports_success`、`test_from_env_uses_explicit_settings_only`。 |
+| [`sdks/python/tests/test_push.py`](../sdks/python/tests/test_push.py) | 验证 SDK 捕获工具轨迹、失败状态、密钥保护和同一运行重放。 |
 
 ### web · 浏览器工作台
 
@@ -1828,18 +1839,15 @@ veyraeval/
 | [`web/src/features/admin/ModelTestResult.tsx`](../web/src/features/admin/ModelTestResult.tsx) | 中文模型测试结果卡，展示Token用量和按计费模式解释的费用，原始JSON默认折叠。 |
 | [`web/src/features/admin/ResourceAdminPanel.tsx`](../web/src/features/admin/ResourceAdminPanel.tsx) | 管理员查看并修改指定工作空间资源上限及原因。 |
 | [`web/src/features/administration/AuditPage.tsx`](../web/src/features/administration/AuditPage.tsx) | 本人工作空间动作审计的分页浏览。 |
+| [`web/src/features/agents/SdkProjectsPage.tsx`](../web/src/features/agents/SdkProjectsPage.tsx) | 创建上报项目、一次性显示和轮换密钥、切换自动评测。 |
 | [`web/src/features/administration/DeletionStatusPage.tsx`](../web/src/features/administration/DeletionStatusPage.tsx) | 异步删除进度、失败重试次数与完成状态。 |
 | [`web/src/features/administration/ResourceUsagePanel.test.tsx`](../web/src/features/administration/ResourceUsagePanel.test.tsx) | 前端回归测试：distinguishes cumulative Python allowance from money and shows shared evidence storage。 |
 | [`web/src/features/administration/ResourceUsagePanel.tsx`](../web/src/features/administration/ResourceUsagePanel.tsx) | 显示个人配额/资源用量和等待原因。 |
-| [`web/src/features/agents/AgentsPage.tsx`](../web/src/features/agents/AgentsPage.tsx) | 注册/浏览Agent和装配凭证管理界面。 |
-| [`web/src/features/agents/CredentialPanel.test.tsx`](../web/src/features/agents/CredentialPanel.test.tsx) | 前端回归测试：shows a Worker key only at issuance and keeps it out of persistent browser storage。 |
-| [`web/src/features/agents/CredentialPanel.tsx`](../web/src/features/agents/CredentialPanel.tsx) | 创建凭证时展示并复制Python SDK私有JSON配置和接入步骤； 限制Agent范围的Worker凭证生成、一次性显示与撤销。 |
 | [`web/src/features/auth/AuthPages.tsx`](../web/src/features/auth/AuthPages.tsx) | 登录和首次/主动修改密码页面。 |
 | [`web/src/features/auth/AuthProvider.tsx`](../web/src/features/auth/AuthProvider.tsx) | 登录用户状态、首次改密/权限约束、私有路由和Session失效后的缓存清理。 |
 | [`web/src/features/auth/LoginFlow.test.tsx`](../web/src/features/auth/LoginFlow.test.tsx) | 前端回归测试：requires password change, preserves CSRF, and hides admin navigation；returns to login after a protected resource rejects the session。 |
 | [`web/src/features/catalog/CatalogEditor.test.tsx`](../web/src/features/catalog/CatalogEditor.test.tsx) | 前端回归测试：keeps editing an incomplete LLM token limit without crashing the page；keeps published versions immutable and permits returning to the draft；explains archival and preserves JSONL error line numbers。 |
 | [`web/src/features/catalog/DatasetFields.tsx`](../web/src/features/catalog/DatasetFields.tsx) | 任务集表单：逐条添加任务，编辑输入、参考答案与超时设置。 |
-| [`web/src/features/catalog/RuleSetFields.tsx`](../web/src/features/catalog/RuleSetFields.tsx) | 评分规则集表单：下拉选择评分方式，编辑规则条件、Rubric、Python及权重。 |
 | [`web/src/features/catalog/ValueFields.tsx`](../web/src/features/catalog/ValueFields.tsx) | 递归类型化字段编辑：文本、数字、布尔、字段组、列表和空值，无需JSON输入。 |
 | [`web/src/features/catalog/ValueFields.test.tsx`](../web/src/features/catalog/ValueFields.test.tsx) | 验证嵌套字段类型保留、改名和重复字段名校验。 |
 | [`web/src/features/catalog/CatalogEditor.tsx`](../web/src/features/catalog/CatalogEditor.tsx) | 草稿内容编辑/保存/发布/归档、固定版本只读及JSONL导入、模型绑定和单次估算。 |
@@ -1865,10 +1873,10 @@ veyraeval/
 | [`web/src/features/models/credits.ts`](../web/src/features/models/credits.ts) | 十进制整数字符串/BigInt格式化和模型单次预留计算，避免浮点误差。 |
 | [`web/src/features/models/money.test.ts`](../web/src/features/models/money.test.ts) | 人民币精确转换、微额显示和大整数金额边界测试。 |
 | [`web/src/features/models/money.ts`](../web/src/features/models/money.ts) | BigInt人民币/整数微元转换及展示，不通过浮点数计算。 |
-| [`web/src/features/reports/CaseRecovery.test.tsx`](../web/src/features/reports/CaseRecovery.test.tsx) | 验证核对参考答案后创建草稿、按最新修订追加任务、保留来源和并发冲突不重试。 |
-| [`web/src/features/reports/CaseRecovery.tsx`](../web/src/features/reports/CaseRecovery.tsx) | 从冻结任务快照复制失败样例到新建或已有任务集草稿，保留摘录来源，不发布或运行评测。 |
+| [`web/src/features/reports/CaseRecovery.tsx`](../web/src/features/reports/CaseRecovery.tsx) | 从冻结任务快照下载可回归的 JSONL 样例并保留来源。 |
 | [`web/src/features/reports/ComparisonView.test.tsx`](../web/src/features/reports/ComparisonView.test.tsx) | 验证不同任务集版本不按序号配对，也不请求逐任务列表。 |
 | [`web/src/features/reports/TaskComparison.test.tsx`](../web/src/features/reports/TaskComparison.test.tsx) | 验证按任务及执行次数配对、分页缺项不误报退步，以及不可比配置不判定改善。 |
+| [`web/src/features/reports/ScoreTrend.tsx`](../web/src/features/reports/ScoreTrend.tsx) | 报告中的结果质量趋势，按现有服务端可比性检查筛选历史分数。 |
 | [`web/src/features/reports/TaskComparison.tsx`](../web/src/features/reports/TaskComparison.tsx) | 逐任务配对、改善或退步展示、评分解释摘要及按需并排展开双方答案和证据。 |
 | [`web/src/features/reports/TrialEvidence.test.tsx`](../web/src/features/reports/TrialEvidence.test.tsx) | 验证固定任务、参考答案、实际回答、失败样例入口及评分引用定位执行步骤。 |
 | [`web/src/features/reports/diagnostics.test.ts`](../web/src/features/reports/diagnostics.test.ts) | 验证执行异常、评分异常、证据不足、可选项失败与质量结论分离，以及任务配对和样例复制语义。 |

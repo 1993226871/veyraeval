@@ -1,20 +1,18 @@
 import { test, expect } from "@playwright/test";
-import { spawn } from "node:child_process";
-import { writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 
-test("HTTPS administrator provisions CNY and a config-file Agent evaluates, compares and deletes", async ({
+test("HTTPS app pushes runs, evaluates automatically or manually, compares and deletes", async ({
   page,
 }) => {
   test.setTimeout(180000);
   page.setDefaultTimeout(15000);
   const admin = process.env.WEB_ACCEPTANCE_ADMIN;
   const password = process.env.WEB_ACCEPTANCE_PASSWORD;
-  const root = process.env.WEB_ACCEPTANCE_ROOT;
   const python = process.env.WEB_ACCEPTANCE_PYTHON;
-  const ca = process.env.WEB_ACCEPTANCE_CA;
-  if (!admin || !password || !root || !python || !ca)
+  if (!admin || !password || !python)
     throw new Error(
       "Run the owned Compose e2e fixture for HTTPS browser acceptance",
     );
@@ -51,139 +49,105 @@ test("HTTPS administrator provisions CNY and a config-file Agent evaluates, comp
   await expect(
     page.getByRole("link", { name: "管理后台", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("link", { name: "任务集", exact: true }).click();
+  await page.getByRole("link", { name: "评分规则集", exact: true }).click();
   await page.getByText("从平台示例开始", { exact: true }).click();
   const copied = page.waitForResponse(
     (response) =>
-      response.url().endsWith("/templates/starter/copy") &&
+      response.url().endsWith("/templates/starter-rules/copy") &&
       response.request().method() === "POST",
   );
   await page
-    .getByRole("button", { name: "复制完整入门示例", exact: true })
+    .getByRole("button", { name: "复制规则评分示例", exact: true })
     .click();
-  expect((await copied).status()).toBe(200);
-  await page.getByRole("link", { name: "Agent 接入", exact: true }).click();
-  await page.getByRole("button", { name: "注册 Agent", exact: true }).click();
-  await page
-    .getByLabel("Agent 名称", { exact: true })
-    .fill("Browser order agent");
-  const created = page.waitForResponse(
-    (response) =>
-      response.url().endsWith("/agents") &&
-      response.request().method() === "POST",
-  );
-  await page.getByRole("button", { name: "注册", exact: true }).click();
-  const agent = (await (await created).json()) as { id: string };
-  await page.getByRole("button", { name: "创建接入凭证", exact: true }).click();
-  await expect(page.getByLabel("本次接入密钥")).toBeVisible();
-  await expect(page.getByLabel("本次接入密钥")).not.toBeEmpty();
-  const secret = (await page.getByLabel("本次接入密钥").textContent())?.trim();
-  if (!secret) throw new Error("One-time fixture credential missing");
-  const configuration = JSON.parse(
-    (await page.getByLabel("Python SDK 配置文件").textContent())!,
-  ) as Record<string, string>;
-  expect(configuration.agent_id).toBe(agent.id);
-  expect(configuration.api_key).toBe(secret);
-  expect(configuration.agent_version).toBe("v1");
-  configuration.ca_cert = ca;
-  configuration.spool_path = path.join(root, "browser-sdk.sqlite");
-  const configurationPath = path.join(root, "browser-agent.local.json");
-  await writeFile(configurationPath, JSON.stringify(configuration), {
-    mode: 0o600,
-  });
-  await page.getByRole("button", { name: "我已保存", exact: true }).click();
-  const worker = spawn(
-    python,
-    [
-      path.resolve("../examples/python-order-agent/main.py"),
-      "--config",
-      configurationPath,
-    ],
-    {
+  const suite = ((await (await copied).json()) as { id: string }).id;
+  await page.getByRole("link", { name: "SDK 接入", exact: true }).click();
+  await page.getByLabel("项目名称").fill("Browser orders");
+  await page.getByRole("button", { name: "创建上报项目" }).click();
+  const key = page.getByLabel("本次上报密钥");
+  await expect(key).not.toBeEmpty();
+  const secret = await key.inputValue();
+  await page.getByRole("button", { name: "我已保存" }).click();
+  const auto = page.getByRole("switch", { name: "自动评测" });
+  await expect(auto).toBeChecked();
+  async function push(version: string, amount: number) {
+    const script = [
+      "import os",
+      "from agent_eval import PushClient, span",
+      "with PushClient(os.environ['WEB_BASE_URL'], os.environ['UPLOAD_KEY'], ca_cert=os.environ.get('WEB_ACCEPTANCE_CA')) as client:",
+      "    run = client.start_run(namespace='regression', name='Orders ' + os.environ['AGENT_VERSION'], agent_name='Browser order agent', agent_version=os.environ['AGENT_VERSION'], dataset_version='orders-v1', suite_version_id=os.environ['SUITE_VERSION'])",
+      "    with run.case(id='A', instruction='Query order A', input={'order_id':'A'}, expected={'amount':100}) as case:",
+      "        with span('tool','query_order', {'order_id':'A'}) as tool:",
+      "            tool.output = {'amount':100}",
+      "        case.output = {'amount':int(os.environ['ORDER_AMOUNT'])}",
+      "    print(run.submit())",
+    ].join("\n");
+    const { stdout } = await promisify(execFile)(python!, ["-c", script], {
       cwd: path.resolve(".."),
-      stdio: "ignore",
       env: {
         ...process.env,
         PYTHONPATH: path.resolve("../sdks/python/src"),
+        UPLOAD_KEY: secret,
+        SUITE_VERSION: suite,
+        AGENT_VERSION: version,
+        ORDER_AMOUNT: String(amount),
       },
       windowsHide: true,
-    },
-  );
-  try {
-    await page.getByRole("link", { name: "实验", exact: true }).click();
-    await page.getByRole("button", { name: "新建实验", exact: true }).click();
-    await page
-      .getByRole("combobox", { name: "Agent", exact: true })
-      .selectOption(agent.id);
-    await page
-      .getByRole("combobox", { name: "任务集版本", exact: true })
-      .selectOption({ index: 1 });
-    await page
-      .getByRole("combobox", { name: "评分规则集版本", exact: true })
-      .selectOption({ index: 1 });
-    const started = page.waitForResponse(
-      (response) =>
-        response.url().endsWith("/experiments") &&
-        response.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: "启动实验", exact: true }).click();
-    const first = ((await (await started).json()) as { id: string }).id;
-    const waitPassed = async (id: string) => {
-      await expect
-        .poll(
-          async () =>
-            (
-              (await (
-                await page.request.get("/api/v1/reports/experiments/" + id)
-              ).json()) as { passed_attempts: number }
-            ).passed_attempts,
-          { timeout: 70000, intervals: [1000] },
-        )
-        .toBe(1);
-    };
-    await waitPassed(first);
-    await page.goto("/workspace/reports/" + first);
-    await page.getByRole("button", { name: / · 第 1 次$/ }).click();
-    await expect(
-      page.getByRole("heading", { name: "执行轨迹", exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText(/树结构来自 Worker/)).toBeVisible();
-    await page.getByRole("button", { name: "重跑 Agent", exact: true }).click();
-    const rerun = page.waitForResponse(
-      (response) =>
-        response.url().endsWith("/experiments") &&
-        response.request().method() === "POST",
-    );
-    await page
-      .getByRole("button", { name: "确认创建新实验", exact: true })
-      .click();
-    const second = ((await (await rerun).json()) as { id: string }).id;
-    await waitPassed(second);
-    await page.reload();
-    await page.getByLabel("对比最近 100 次实验").selectOption(first);
-    await page
-      .getByRole("link", { name: "查看可比性与差异", exact: true })
-      .click();
-    await expect(page.getByText("可以直接比较", { exact: true })).toBeVisible();
-    await page.getByRole("link", { name: "实验", exact: true }).click();
-    await page
-      .getByRole("row")
-      .filter({ hasText: first.slice(0, 8) })
-      .getByRole("button", { name: "删除实验", exact: true })
-      .click();
-    await page.getByRole("button", { name: "确认删除", exact: true }).click();
-    await page.getByRole("link", { name: "查看删除进度", exact: true }).click();
-    await expect(
-      page.getByRole("heading", { name: "实验删除进度", exact: true }),
-    ).toBeVisible();
-    expect(
-      (await page.request.get("/api/v1/reports/experiments/" + first)).status(),
-    ).toBe(404);
-  } finally {
-    worker.kill();
-    await new Promise<void>((resolve) => {
-      if (worker.exitCode !== null) resolve();
-      else worker.once("exit", () => resolve());
     });
+    return stdout.trim();
   }
+  async function waitScored(id: string, passed: number) {
+    await expect
+      .poll(
+        async () => {
+          const result = await page.request.get(
+            "/api/v1/reports/experiments/" + id,
+          );
+          if (!result.ok()) return null;
+          const data = await result.json();
+          return [data.determinable_attempts, data.passed_attempts];
+        },
+        { timeout: 70000, intervals: [1000] },
+      )
+      .toEqual([1, passed]);
+  }
+  const first = await push("v1", 120);
+  await waitScored(first, 0);
+  await auto.click();
+  await expect(auto).not.toBeChecked();
+  const second = await push("v2", 100);
+  await page.goto("/workspace/reports/" + second);
+  await expect(page.getByText(/已接收上报，待评测/)).toBeVisible();
+  const before = await page.request.get(
+    "/api/v1/reports/experiments/" + second,
+  );
+  expect((await before.json()).determinable_attempts).toBe(0);
+  await page.getByRole("button", { name: "开始评测", exact: true }).click();
+  await page.getByRole("button", { name: "确认开始评测", exact: true }).click();
+  await waitScored(second, 1);
+  await page.reload();
+  await expect(
+    page
+      .getByRole("region", { name: "Agent 评分趋势" })
+      .getByText(/100 分/)
+      .last(),
+  ).toBeVisible();
+  await page.getByLabel("对比最近 100 次实验").selectOption(first);
+  await page
+    .getByRole("link", { name: "查看可比性与差异", exact: true })
+    .click();
+  await expect(page.getByText("可以直接比较", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "实验", exact: true }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "Orders v1" })
+    .getByRole("button", { name: "删除实验", exact: true })
+    .click();
+  await page.getByRole("button", { name: "确认删除", exact: true }).click();
+  await page.getByRole("link", { name: "查看删除进度", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "实验删除进度", exact: true }),
+  ).toBeVisible();
+  expect(
+    (await page.request.get("/api/v1/reports/experiments/" + first)).status(),
+  ).toBe(404);
 });

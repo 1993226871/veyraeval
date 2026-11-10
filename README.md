@@ -29,14 +29,14 @@
 
 <a id="overview"></a>
 
-任务集与评分规则集支持表单编辑，规则检查、LLM Rubric 和自定义 Python 在同一规则集中配置。参阅[工作台使用指南](docs/guides/tasks-and-rule-sets.md)。
+应用通过 SDK 上报 Agent、任务和执行轨迹。工作台管理项目密钥与 JSON 评分规则，并提供自动或手动评测、报告和评分趋势。参阅[应用主动上报指南](docs/guides/tasks-and-rule-sets.md)。
 已完成本地部署的 Windows 用户可双击根目录 `start.cmd` 启动，使用 `status.cmd` 查看状态、`stop.cmd` 停止服务并保留数据。首次安装及配置路径参数见[快速开始](docs/guides/quickstart.md)。
 
 ## Overview
 
 VeyraEval Platform 旨在帮助开发者回答两个问题：**Agent 是否完成了任务，以及它是怎样完成的。**
 
-你保留自己的 Agent 实现和运行环境，在私人工作空间中维护任务集与评分标准，通过 Java 或 Python SDK 接入。评测从平台发起，SDK Worker 主动领取任务，记录模型调用、工具调用、中间结果和最终输出。平台将这些证据交给规则、模型评审或自定义 Python 代码，生成可追溯的评测结果。
+你在自己的应用或 CI 中决定运行哪个 Agent 和任务集，用 Java 或 Python SDK 上报执行结果及轨迹。平台固定评分规则版本，按项目设置自动或手动评分，生成可追溯的报告和质量趋势。
 
 它适用于自定义 Agent 的质量回归、版本比较和失败分析。接入不要求使用特定 Agent 框架，也不要求开放入站 HTTP 端口。
 
@@ -54,25 +54,20 @@ VeyraEval Platform 旨在帮助开发者回答两个问题：**Agent 是否完�
 
 ```mermaid
 flowchart LR
+    subgraph App[用户应用或 CI]
+        Cases[本地任务集] --> Agent[执行 Agent]
+        Agent --> SDK[Java / Python SDK 收集结果和轨迹]
+    end
     subgraph Platform[评测平台]
-        UI[私人工作空间] --> Scheduler[任务调度]
-        Ingest[轨迹与结果采集] --> Evidence[证据快照]
-        Evidence --> Evaluators[规则 / LLM / Python 评测器]
-        Evaluators --> Report[报告与版本比较]
-        Quota[累计额度] --> Evaluators
+        Intake[项目密钥校验与上报] --> Evidence[冻结整轮证据]
+        Evidence --> Gate[自动或手动评测]
+        Gate --> Eval[规则 / LLM Judge / 自定义 Python]
+        Eval --> Report[报告、版本对比与评分趋势]
     end
-
-    subgraph UserRuntime[用户运行环境]
-        Worker[Java / Python SDK Worker] --> Agent[自定义 Agent]
-        Agent --> Trace[模型调用 / 工具调用 / 中间结果]
-    end
-
-    Worker -->|主动长轮询领取任务| Scheduler
-    Trace -->|SDK 批量上报| Ingest
-    Worker -->|最终结果与产物| Ingest
+    SDK -->|上报已执行的运行| Intake
 ```
 
-**任务下发与轨迹上报是两条链路。** 平台统一关联一次任务尝试，Worker 在用户侧执行。内部步骤通过显式埋点或后续框架集成采集；只注册 Agent 入口，无法自动观察任意内部调用。
+**运行由应用发起。** SDK 为每道题关联输出和轨迹，现有显式埋点可继续记录工具、模型和中间结果。
 
 轨迹采集、存储、查询、展示和评测均由项目自建，不依赖 Langfuse 或 LangSmith。
 
@@ -92,7 +87,9 @@ flowchart LR
 <a id="sdk-preview"></a>
 ## SDK integration
 
-SDK提供 **Worker 接入**和**执行轨迹采集**。Python `0.1.1` 新增 JSON 配置文件接入，可在平台注册 Agent、生成凭证后复制配置，无需逐项设置环境变量。Python SDK 已发布到 [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.0/)，Java SDK 已发布 Maven Central，均可直接引入依赖。
+Python 和 Java SDK 源码提供主动上报及轨迹采集。已发布到 PyPI 和 Maven Central 的版本提供 Worker 接入。
+
+新上报 API 的接入步骤及可运行订单示例见[应用主动上报指南](docs/guides/tasks-and-rule-sets.md)。以下示例记录已发布 SDK 的 Worker API。
 
 ### Python
 

@@ -13,9 +13,10 @@ public final class Telemetry {
     private static final Pattern PRIVATE=Pattern.compile("authorization|password|secret|token|api[_-]?key|cookie",Pattern.CASE_INSENSITIVE);
     private final UUID trial;
     private final String trace;
-    private final FileSpool spool;
+    private final Capture spool;
     private final List<String> secrets;
-    public Telemetry(UUID trial,String trace,FileSpool spool,List<String> secrets) { this.trial=trial; this.trace=trace; this.spool=spool; this.secrets=secrets.stream().filter(s -> s!=null && !s.isEmpty()).toList(); }
+    public Telemetry(UUID trial,String trace,FileSpool spool,List<String> secrets) { this(trial,trace,(Capture)spool,secrets); }
+    Telemetry(UUID trial,String trace,Capture spool,List<String> secrets) { this.trial=trial; this.trace=trace; this.spool=spool; this.secrets=secrets.stream().filter(s -> s!=null && !s.isEmpty()).toList(); }
     public Scope activate() { return install(new Context(this,null)); }
     public static Context captureContext() { return CURRENT.get(); }
     public static <T> T runWithContext(Context context,Supplier<T> action) { try(var scope=install(context)) { return action.get(); } }
@@ -55,6 +56,11 @@ public final class Telemetry {
     }
     private void put(ObjectNode result,String key,Object value,CaptureState state,int depth) { String masked=mask(key,state); if(PRIVATE.matcher(masked).find()) { state.redacted=true; result.put(masked,"[redacted]"); } else result.set(masked,clean(value,state,depth+1)); }
     private String mask(String value,CaptureState state) { for(var secret:secrets) if(value.contains(secret)) { value=value.replace(secret,"[redacted]"); state.redacted=true; } if(value.length()>1024*1024) { value=value.substring(0,1024*1024); state.truncated=true; } return value; }
+    interface Capture {
+        String storePayload(UUID trial,byte[] content);
+        boolean append(TraceEvent event);
+        void recordDrop(UUID trial);
+    }
     public record Context(Telemetry telemetry,String parentSpanId) {}
     private static final class CaptureState { boolean redacted,truncated; }
     public static final class Scope implements AutoCloseable {

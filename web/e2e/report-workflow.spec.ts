@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
+import { readFile } from "node:fs/promises";
 
-test("diagnoses failures, saves a draft and compares tasks on desktop and mobile", async ({
+test("diagnoses failures, downloads a regression case and compares tasks", async ({
   page,
 }) => {
   const errors: string[] = [];
-  const writes: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const tasks = [
     {
@@ -61,7 +61,8 @@ test("diagnoses failures, saves a draft and compares tasks on desktop and mobile
     case_count: 2,
     repeat_count: 1,
     task_count: 2,
-    created_at: "2026-10-31T00:00:00Z",
+    created_at:
+      side === "left" ? "2026-10-30T00:00:00Z" : "2026-10-31T00:00:00Z",
   });
   const report = (side: string) => ({
     experiment_id: side,
@@ -79,7 +80,17 @@ test("diagnoses failures, saves a draft and compares tasks on desktop and mobile
     cancelled_attempts: 0,
     pass_rate_planned: { numerator: 1, denominator: 2, value: 0.5 },
     pass_rate_determinable: { numerator: 1, denominator: 2, value: 0.5 },
-    dimensions: {},
+    dimensions: {
+      outcome: {
+        score: side === "left" ? 0.5 : 0.75,
+        scored_weight: 2,
+        total_weight: 2,
+        coverage: 1,
+        scored_criteria: 2,
+        planned_criteria: 2,
+        partial: false,
+      },
+    },
     efficiency: {
       p50_duration_ms: 50,
       p95_duration_ms: 50,
@@ -88,7 +99,6 @@ test("diagnoses failures, saves a draft and compares tasks on desktop and mobile
     },
     execution_counts: { SUCCEEDED: 2 },
   });
-  let recovered: Record<string, unknown> | undefined;
   await page.route("**/api/v1/**", async (route) => {
     const req = route.request();
     const url = new URL(req.url());
@@ -110,8 +120,8 @@ test("diagnoses failures, saves a draft and compares tasks on desktop and mobile
       value = summary(p.split("/").pop()!);
     else if (p === "/reports/comparison")
       value = {
-        left: report("left"),
-        right: report("right"),
+        left: report(url.searchParams.get("left") ?? "left"),
+        right: report(url.searchParams.get("right") ?? "right"),
         directly_comparable: true,
         reasons: [],
         dimension_deltas: {},
@@ -178,20 +188,19 @@ test("diagnoses failures, saves a draft and compares tasks on desktop and mobile
         ],
         next_cursor: null,
       };
-    else if (p === "/catalog" && req.method() === "POST") {
-      writes.push(p);
-      const body = req.postDataJSON();
-      recovered = { ...body, id: "recovered", revision: 1, archived: false };
-      expect(body.content.cases[0].expected).toEqual({ amount: 100 });
-      expect(body.content.cases[0].source.trial_id).toBe("left-0");
-      value = recovered;
-    } else if (p === "/catalog/recovered") value = recovered;
-    else if (p === "/catalog-summaries") value = recovered ? [recovered] : [];
-    if (!["GET", "HEAD"].includes(req.method()) && p !== "/catalog")
+    if (!["GET", "HEAD"].includes(req.method()))
       throw new Error("Unexpected mutation: " + p);
     await route.fulfill({ json: value });
   });
   await page.goto("/workspace/reports/left");
+  const trend = page.getByRole("region", { name: "Agent 评分趋势" });
+  await expect(trend.getByRole("img")).toBeVisible();
+  await expect(trend.getByText(/75 分/).last()).toBeVisible();
+  await expect(trend.getByRole("link", { name: /^v2/ })).toHaveAttribute(
+    "href",
+    "/workspace/reports/right",
+  );
+
   await expect(
     page.getByRole("heading", { name: "订单助手 的评测报告" }),
   ).toBeVisible();
@@ -201,17 +210,15 @@ test("diagnoses failures, saves a draft and compares tasks on desktop and mobile
   await expect(answers.getByText("120", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "查看关联执行步骤" }).click();
   await expect(page.locator('[data-highlighted="true"]')).toBeVisible();
-  await answers.getByRole("button", { name: "加入任务集草稿" }).click();
-  await answers
-    .getByLabel("已核对任务和参考答案；缺少的参考答案将在草稿中补充")
-    .check();
-  await answers.getByRole("button", { name: "保存到草稿" }).click();
-  await page.getByRole("link", { name: "打开任务集草稿" }).click();
-  await expect(page.getByLabel("任务要求 1", { exact: true })).toHaveValue(
-    "查询订单金额",
+  const download = page.waitForEvent("download");
+  await answers.getByRole("button", { name: "下载回归样例" }).click();
+  const downloaded = await download;
+  const regression = JSON.parse(
+    await readFile((await downloaded.path())!, "utf8"),
   );
-  await page.getByText("查看样例摘录来源").click();
-  await expect(page.getByRole("link", { name: "查看来源报告" })).toBeVisible();
+  expect(regression.expected).toEqual({ amount: 100 });
+  expect(regression.source.trial_id).toBe("left-0");
+  expect(regression).not.toHaveProperty("output");
   await page.goto("/workspace/comparisons?left=left&right=right");
   const comparison = page.getByRole("region", { name: "逐任务对比" });
   await expect(comparison.getByText("改善", { exact: true })).toBeVisible();
@@ -245,5 +252,4 @@ test("diagnoses failures, saves a draft and compares tasks on desktop and mobile
     ),
   ).toBe(true);
   expect(errors).toEqual([]);
-  expect(writes).toEqual(["/catalog"]);
 });

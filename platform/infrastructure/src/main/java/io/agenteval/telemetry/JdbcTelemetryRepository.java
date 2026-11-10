@@ -26,30 +26,34 @@ public class JdbcTelemetryRepository implements TelemetryRepository {
     @Override public BatchAck ingest(WorkerPrincipal p,UUID trialId,String token,List<TraceEvent> events,Instant now) {
         return tx.execute(status -> {
             leases.validateUploadAttempt(p,trialId,token,now);
-            String trace=jdbc.sql("select trace_id from trials where id=? and workspace_id=?").params(trialId,p.workspaceId()).query(String.class).single();
-            int count=jdbc.sql("select count(*) from trace_events where trial_id=? and workspace_id=?").params(trialId,p.workspaceId()).query(Integer.class).single();
-            var accepted=new ArrayList<UUID>();
-            for(var event:events) {
-                if(!trace.equals(event.traceId())) throw new TelemetryConflictException();
-                var payload=toTree(event); String hash=CanonicalJson.hash(payload);
-                var old=existingHash(p.workspaceId(),event.eventId());
-                if(old.isPresent()) { if(!old.get().equals(hash)) throw new TelemetryConflictException(); accepted.add(event.eventId()); continue; }
-                if(count>=10000) throw new TelemetryLimitException();
-                var inserted=jdbc.sql("insert into trace_events(workspace_id,trial_id,event_id,sequence,event_json,content_hash,received_at) values (?,?,?,?,cast(? as jsonb),?,?) on conflict do nothing returning octet_length(event_json::text)")
-                    .params(p.workspaceId(),trialId,event.eventId(),event.sequence(),payload.toString(),hash,Timestamp.from(now)).query(Long.class).optional();
-                if(inserted.isEmpty()) {
-                    if(!existingHash(p.workspaceId(),event.eventId()).map(hash::equals).orElse(false)) throw new TelemetryConflictException();
-                } else {
-                    long bytes=inserted.get();
-                    if(jdbc.sql("update trial_evidence_usage set event_bytes=event_bytes+? where trial_id=? and workspace_id=? and event_bytes<=16777216-?").params(bytes,trialId,p.workspaceId(),bytes).update()!=1) throw new TelemetryLimitException();
-                    // Includes a conservative allowance for the materialized Span projection.
-                    io.agenteval.administration.JdbcResourceAdmission.evidence(jdbc,p.workspaceId(),Math.multiplyExact(bytes,2));
-                    count++; project(p.workspaceId(),trialId,event);
-                }
-                accepted.add(event.eventId());
-            }
-            return new BatchAck(accepted);
+            return persist(p.workspaceId(),trialId,events,now);
         });
+    }
+    /** For a validated SDK run inside the owning transaction and scheduler lock. */
+    public BatchAck persist(UUID workspace,UUID trialId,List<TraceEvent> events,Instant now) {
+        String trace=jdbc.sql("select trace_id from trials where id=? and workspace_id=?").params(trialId,workspace).query(String.class).single();
+        int count=jdbc.sql("select count(*) from trace_events where trial_id=? and workspace_id=?").params(trialId,workspace).query(Integer.class).single();
+        var accepted=new ArrayList<UUID>();
+        for(var event:events) {
+            if(!trace.equals(event.traceId())) throw new TelemetryConflictException();
+            var payload=toTree(event); String hash=CanonicalJson.hash(payload);
+            var old=existingHash(workspace,event.eventId());
+            if(old.isPresent()) { if(!old.get().equals(hash)) throw new TelemetryConflictException(); accepted.add(event.eventId()); continue; }
+            if(count>=10000) throw new TelemetryLimitException();
+            var inserted=jdbc.sql("insert into trace_events(workspace_id,trial_id,event_id,sequence,event_json,content_hash,received_at) values (?,?,?,?,cast(? as jsonb),?,?) on conflict do nothing returning octet_length(event_json::text)")
+                .params(workspace,trialId,event.eventId(),event.sequence(),payload.toString(),hash,Timestamp.from(now)).query(Long.class).optional();
+            if(inserted.isEmpty()) {
+                if(!existingHash(workspace,event.eventId()).map(hash::equals).orElse(false)) throw new TelemetryConflictException();
+            } else {
+                long bytes=inserted.get();
+                if(jdbc.sql("update trial_evidence_usage set event_bytes=event_bytes+? where trial_id=? and workspace_id=? and event_bytes<=16777216-?").params(bytes,trialId,workspace,bytes).update()!=1) throw new TelemetryLimitException();
+                // Includes a conservative allowance for the materialized Span projection.
+                io.agenteval.administration.JdbcResourceAdmission.evidence(jdbc,workspace,Math.multiplyExact(bytes,2));
+                count++; project(workspace,trialId,event);
+            }
+            accepted.add(event.eventId());
+        }
+        return new BatchAck(accepted);
     }
     private Optional<String> existingHash(UUID workspace,UUID event) { return jdbc.sql("select content_hash from trace_events where workspace_id=? and event_id=?").params(workspace,event).query(String.class).optional(); }
     private void project(UUID workspace,UUID trial,TraceEvent event) {

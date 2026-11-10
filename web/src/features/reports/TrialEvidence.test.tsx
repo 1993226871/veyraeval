@@ -23,7 +23,7 @@ const trial: Schema<"TrialReport"> = {
   suite_version_id: "suite",
   evidence_wait_reason: null,
 };
-it("shows input, reference, actual answer and linked step before offering recovery of a failed task", async () => {
+it("shows input, reference, actual answer and linked step before offering a failed task for local regression", async () => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -112,7 +112,7 @@ it("shows input, reference, actual answer and linked step before offering recove
   expect(content.getByText("查询订单金额")).toBeVisible();
   expect(content.getByText("100")).toBeVisible();
   expect(content.getByText("120")).toBeVisible();
-  expect(content.getByRole("button", { name: "加入任务集草稿" })).toBeVisible();
+  expect(content.getByRole("button", { name: "下载回归样例" })).toBeVisible();
   expect(await screen.findByText("金额与工具结果矛盾")).toBeVisible();
   await userEvent
     .setup()

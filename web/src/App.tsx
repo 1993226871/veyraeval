@@ -7,7 +7,7 @@ import {
 } from "./features/auth/AuthProvider";
 import { LoginPage, PasswordPage } from "./features/auth/AuthPages";
 import { CatalogPage } from "./features/catalog/CatalogPage";
-import { AgentsPage } from "./features/agents/AgentsPage";
+import { SdkProjectsPage } from "./features/agents/SdkProjectsPage";
 import { ExperimentsPage } from "./features/experiments/ExperimentsPage";
 import { MyModelsPage } from "./features/models/MyModelsPage";
 import { QuotaPage } from "./features/models/QuotaPage";
@@ -40,9 +40,8 @@ function Layout() {
   const [error, setError] = useState<unknown>();
   const links = [
     ["experiments", "实验"],
-    ["datasets", "任务集"],
     ["rule-sets", "评分规则集"],
-    ["agents", "Agent 接入"],
+    ["agents", "SDK 接入"],
     ["quota", "个人额度"],
     ["models", "评审模型"],
     ["audit", "操作记录"],
@@ -109,10 +108,6 @@ export function App() {
           <Route path="/workspace/reports/:id" element={<ExperimentReport />} />
           <Route path="/workspace/comparisons" element={<ComparisonView />} />
           <Route
-            path="/workspace/datasets"
-            element={<CatalogPage key="datasets" kind="DATASET" />}
-          />
-          <Route
             path="/workspace/evaluators"
             element={<Navigate to="/workspace/rule-sets" replace />}
           />
@@ -124,7 +119,7 @@ export function App() {
             path="/workspace/rule-sets"
             element={<CatalogPage key="rule-sets" kind="SUITE" />}
           />
-          <Route path="/workspace/agents" element={<AgentsPage />} />
+          <Route path="/workspace/agents" element={<SdkProjectsPage />} />
           <Route path="/workspace/quota" element={<QuotaPage />} />
           <Route path="/workspace/models" element={<MyModelsPage />} />
           <Route path="/workspace/audit" element={<AuditPage />} />

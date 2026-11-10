@@ -9,9 +9,10 @@ import java.io.IOException;
 /** Bound both advertised and chunked request bodies before message conversion allocates them. */
 @Component
 public final class TraceRequestLimitFilter extends OncePerRequestFilter {
-    @Override protected boolean shouldNotFilter(HttpServletRequest request) { return !request.getServletPath().endsWith("/events:batch") && !request.getRequestURI().endsWith("/events:batch"); }
+    @Override protected boolean shouldNotFilter(HttpServletRequest request) { return !request.getServletPath().endsWith("/events:batch") && !request.getRequestURI().endsWith("/events:batch") && !request.getServletPath().equals("/api/v1/sdk-runs:upload"); }
     @Override protected void doFilterInternal(HttpServletRequest req,HttpServletResponse res,FilterChain chain) throws ServletException,IOException {
-        if(req.getContentLengthLong()>1024*1024) { ApiProblems.write(res,413,"TRACE_LIMIT_EXCEEDED"); return; }
+        int limit = req.getServletPath().equals("/api/v1/sdk-runs:upload") ? 8*1024*1024 : 1024*1024;
+        if(req.getContentLengthLong()>limit) { ApiProblems.write(res,413,"TRACE_LIMIT_EXCEEDED"); return; }
         var wrapped=new HttpServletRequestWrapper(req) {
             private ServletInputStream bounded;
             @Override public ServletInputStream getInputStream() throws IOException {
@@ -19,13 +20,13 @@ public final class TraceRequestLimitFilter extends OncePerRequestFilter {
                 var source=super.getInputStream();
                 bounded=new ServletInputStream() {
                     private long read;
-                    private void add(int count) throws TraceInputLimitException { if(count>0 && (read+=count)>1024*1024) throw new TraceInputLimitException(); }
+                    private void add(int count) throws TraceInputLimitException { if(count>0 && (read+=count)>limit) throw new TraceInputLimitException(); }
                     @Override public int read() throws IOException { int value=source.read(); if(value!=-1) add(1); return value; }
                     @Override public int read(byte[] bytes,int offset,int length) throws IOException {
                         java.util.Objects.checkFromIndexSize(offset,length,bytes.length);
                         if(length==0) return 0;
-                        if(read>1024*1024) throw new TraceInputLimitException();
-                        int count=source.read(bytes,offset,(int)Math.min(length,1024*1024-read+1)); add(count); return count;
+                        if(read>limit) throw new TraceInputLimitException();
+                        int count=source.read(bytes,offset,(int)Math.min(length,limit-read+1)); add(count); return count;
                     }
                     @Override public boolean isFinished() { return source.isFinished(); }
                     @Override public boolean isReady() { return source.isReady(); }

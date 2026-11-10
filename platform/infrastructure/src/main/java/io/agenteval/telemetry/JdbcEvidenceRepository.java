@@ -83,9 +83,27 @@ public class JdbcEvidenceRepository implements EvidenceRepository {
             if(bytes>32L*1024*1024) throw new TelemetryLimitException();
             io.agenteval.administration.JdbcResourceAdmission.evidence(jdbc,actor.workspaceId(),bytes);
             jdbc.sql("update trials set evidence_wait_reason=null where id=? and workspace_id=?").params(trial,actor.workspaceId()).update();
-            if(scheduleDefault && !row.status().equals("CANCELLED") && !row.experimentStatus().equals("CANCELLED")) jdbc.sql("insert into grading_jobs(id,workspace_id,trial_id,snapshot_id,suite_version_id,next_run_at,created_at) values (?,?,?,?,?,?,?)").params(UUID.randomUUID(),actor.workspaceId(),trial,id,row.suiteVersion(),Timestamp.from(now),Timestamp.from(now)).update();
+            if(scheduleDefault && !isSdkRun(row.experimentId()) && !row.status().equals("CANCELLED") && !row.experimentStatus().equals("CANCELLED")) jdbc.sql("insert into grading_jobs(id,workspace_id,trial_id,snapshot_id,suite_version_id,next_run_at,created_at) values (?,?,?,?,?,?,?)").params(UUID.randomUUID(),actor.workspaceId(),trial,id,row.suiteVersion(),Timestamp.from(now),Timestamp.from(now)).update();
+            enqueueSdkRunIfReady(jdbc,row.experimentId(),now);
             return new EvidenceSnapshot(id,trial,hash,completeness,manifest,now);
         });
+    }
+    private boolean isSdkRun(UUID experiment) {
+        return jdbc.sql("select exists(select 1 from sdk_runs where experiment_id=?)").param(experiment).query(Boolean.class).single();
+    }
+    // The caller holds scheduler_guard. Queue the whole run once every case has frozen evidence.
+    public static void enqueueSdkRunIfReady(JdbcClient jdbc,UUID experiment,Instant now) {
+        jdbc.sql("""
+            insert into grading_jobs(id,workspace_id,trial_id,snapshot_id,suite_version_id,next_run_at,created_at)
+            select gen_random_uuid(),t.workspace_id,t.id,s.id,e.suite_version_id,?,?
+            from sdk_runs r join experiments e on e.id=r.experiment_id
+            join trials t on t.experiment_id=e.id
+            join lateral (select id from evidence_snapshots where trial_id=t.id order by ordinal limit 1) s on true
+            where e.id=? and r.authorized and e.status='ACTIVE' and t.status<>'CANCELLED'
+              and not exists(select 1 from trials pending where pending.experiment_id=e.id
+                and not exists(select 1 from evidence_snapshots frozen where frozen.trial_id=pending.id))
+              and not exists(select 1 from grading_jobs g where g.trial_id=t.id and g.initial_run)
+            """).params(Timestamp.from(now),Timestamp.from(now),experiment).update();
     }
     @Override public EvidenceSnapshot load(WorkspaceActor actor,UUID id) { return jdbc.sql("select s.* from evidence_snapshots s join trials t on t.id=s.trial_id join experiments e on e.id=t.experiment_id where s.id=? and s.workspace_id=? and e.status not in ('DELETING','DELETED')").params(id,actor.workspaceId()).query(this::map).optional().orElseThrow(ScopeViolationException::new); }
     @Override public int freezeReady(int limit,Instant now) {

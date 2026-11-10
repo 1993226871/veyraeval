@@ -31,10 +31,10 @@
 | --- | --- |
 | `platform/protocol/` | 共享 Java DTO、协议序列化和协议契约测试；Java SDK 直接依赖。 |
 | `platform/core/` | 身份、目录、实验、租约、证据、规则/LLM/Python 评测、费用、报告等领域服务和仓储接口。 |
-| `platform/infrastructure/` | PostgreSQL/JDBC 仓储、S3 附件、模型网关、Runner HTTP 客户端、23 个 Flyway 迁移及集成测试。 |
+| `platform/infrastructure/` | PostgreSQL/JDBC 仓储、S3 附件、模型网关、Runner HTTP 客户端、24 个 Flyway 迁移及集成测试。 |
 | `platform/api/` | Spring Boot API、浏览器 Session/CSRF、安全过滤器、Worker 鉴权、Controller 和平台模板。 |
 | `platform/worker/` | 平台后台进程：评分、超时维护、模型请求恢复与删除清理。不是用户 Agent Worker。 |
-| `sdks/java/`、`sdks/python/` | 用户环境中的 Agent Worker、长轮询、心跳、打点、持久化上传和结果提交。 |
+| `sdks/java/`、`sdks/python/` | 用户环境中的 主动上报客户端及轨迹采集，保留已发布 Worker 的长轮询和上传协议。 |
 | `runner/` | 专用 Linux/runsc 节点上的自定义 Python 评测执行服务及隔离镜像；不在宿主执行用户代码。 |
 | `web/` | React 私人工作台、目录编辑、实验、证据、报告、对比、额度及管理页面。 |
 | `contracts/` | 规范 JSON Schema、共享有效/无效样例和生成的 OpenAPI；SDK/Runner 内 schema 是同步副本。 |

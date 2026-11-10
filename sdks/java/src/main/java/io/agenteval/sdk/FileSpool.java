@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.function.Supplier;
 
 /** Atomic SQLite queue. Only already-redacted telemetry belongs here. */
-public final class FileSpool implements AutoCloseable {
+public final class FileSpool implements AutoCloseable, Telemetry.Capture {
     private final Connection db;
     private final long maxBytes;
     public FileSpool(Path path) { this(path,100L*1024*1024); }

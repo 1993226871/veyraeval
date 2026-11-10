@@ -234,7 +234,7 @@ class Platform:
         environment = dict(os.environ, WEB_BASE_URL=self.base, WEB_ACCEPTANCE_ADMIN=self.env["BOOTSTRAP_ADMIN_EMAIL"], WEB_ACCEPTANCE_PASSWORD=self.admin_password,
             WEB_ACCEPTANCE_ROOT=str(self.root), WEB_ACCEPTANCE_PYTHON=sys.executable, WEB_ACCEPTANCE_CA=str(self.ca), WEB_TLS_SPKI=pin, NODE_EXTRA_CA_CERTS=str(self.ca))
         subprocess.run([node, str(ROOT / "web/node_modules/@playwright/test/cli.js"), "test", "workspace-evaluation.spec.ts"], cwd=ROOT / "web", env=environment, check=True)
-        print("HTTPS browser provisioning, CNY, config-file SDK evaluation, comparison and deletion passed.", flush=True)
+        print("HTTPS browser provisioning, CNY, SDK upload, automatic/manual evaluation, comparison and deletion passed.", flush=True)
 
     def capacity(self):
         for credential in self.request(self.user, "GET", "/worker-credentials?limit=100"):

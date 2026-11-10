@@ -10,7 +10,7 @@ public interface WorkspaceListings {
     record ExperimentSummary(UUID id,UUID workspaceId,UUID agentId,String agentVersion,UUID datasetVersionId,
         UUID suiteVersionId,int repeatCount,Instant deadline,String status,UUID sourceExperimentId,
         String agentName,String datasetName,int datasetVersionNumber,String suiteName,int suiteVersionNumber,
-        int caseCount,int taskCount,Instant createdAt) {}
+        int caseCount,int taskCount,Instant createdAt, UUID sdkProjectId, String sdkProject, String namespace, String runName, Boolean evaluationAuthorized) {}
     List<ResourceSummary> catalog(WorkspaceActor actor,ResourceKind kind,int offset,int limit);
     List<ExperimentSummary> experiments(WorkspaceActor actor,int offset,int limit);
     ExperimentSummary experiment(WorkspaceActor actor,UUID id);

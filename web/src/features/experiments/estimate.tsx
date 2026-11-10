@@ -1,41 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { api, request } from "../../api/client";
 import type { Schema } from "../../api/types";
 import { ErrorNotice } from "../../components/ui";
-import { useWorkspace } from "../auth/AuthProvider";
 import { formatCny } from "../models/money";
 
-export function useExperimentEstimate(
-  dataset: string,
-  suite: string,
-  repeats: number,
-  enabled: boolean,
-) {
-  const { workspace_id } = useWorkspace();
-  return useQuery({
-    queryKey: [workspace_id, "experiment-estimate", dataset, suite, repeats],
-    enabled:
-      enabled &&
-      !!dataset &&
-      !!suite &&
-      Number.isInteger(repeats) &&
-      repeats >= 1 &&
-      repeats <= 20,
-    queryFn: ({ signal }) =>
-      request(
-        api.GET("/api/v1/experiments/estimate", {
-          params: {
-            query: {
-              datasetVersionId: dataset,
-              suiteVersionId: suite,
-              repeatCount: repeats,
-            },
-          },
-          signal,
-        }),
-      ),
-  });
-}
 export function EstimateNotice({
   value,
   error,

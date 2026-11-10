@@ -1,8 +1,7 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, request } from "../../api/client";
-import type { Schema } from "../../api/types";
 import {
   Badge,
   Dialog,
@@ -12,9 +11,7 @@ import {
   PageHeading,
 } from "../../components/ui";
 import { useWorkspace } from "../auth/AuthProvider";
-import { useVersionOptions } from "../catalog/queries";
 import { DeletionControl } from "./DeletionControl";
-import { EstimateNotice, useExperimentEstimate } from "./estimate";
 import { executionPlan, executionStatus } from "./presentation";
 import { objectValue } from "../catalog/validation";
 
@@ -33,24 +30,6 @@ export function ExperimentsPage() {
       ),
     refetchInterval: 10000,
   });
-  const agents = useQuery({
-    queryKey: [workspace_id, "agents"],
-    queryFn: () => request(api.GET("/api/v1/agents")),
-  });
-  const datasets = useVersionOptions("DATASET");
-  const suites = useVersionOptions("SUITE");
-  const [open, setOpen] = useState(false);
-  const [agentId, setAgentId] = useState("");
-  const [dataset, setDataset] = useState("");
-  const [suite, setSuite] = useState("");
-  const [repeat, setRepeat] = useState(1);
-  const [minutes, setMinutes] = useState(60);
-  const [key, setKey] = useState("");
-  const estimate = useExperimentEstimate(dataset, suite, repeat, open);
-  const submission = useRef<{
-    fingerprint: string;
-    body: Schema<"StartExperiment">;
-  } | null>(null);
   const [selected, setSelected] = useState("");
   const [cancelId, setCancelId] = useState("");
   const selectedExperiment = useQuery({
@@ -74,47 +53,6 @@ export function ExperimentsPage() {
       ),
     refetchInterval: 10000,
   });
-  const start = useMutation({
-    mutationFn: () => {
-      const agent = agents.data?.find((value) => value.id === agentId);
-      if (!agent) throw new Error("请选择 Agent。");
-      const fingerprint = JSON.stringify([
-        agent.id,
-        agent.version,
-        dataset,
-        suite,
-        repeat,
-        minutes,
-        key,
-      ]);
-      if (submission.current?.fingerprint !== fingerprint) {
-        submission.current = {
-          fingerprint,
-          body: {
-            agent_id: agent.id,
-            agent_version: agent.version,
-            dataset_version_id: dataset,
-            suite_version_id: suite,
-            repeat_count: repeat,
-            deadline: new Date(Date.now() + minutes * 60000).toISOString(),
-            idempotency_key: crypto.randomUUID(),
-          },
-        };
-      }
-      return request(
-        api.POST("/api/v1/experiments", {
-          body: submission.current.body,
-        }),
-      );
-    },
-    onSuccess: async (value) => {
-      setOpen(false);
-      setSelected(value.id);
-      await cache.invalidateQueries({
-        queryKey: [workspace_id, "experiments"],
-      });
-    },
-  });
   const cancel = useMutation({
     mutationFn: () =>
       request(
@@ -134,18 +72,11 @@ export function ExperimentsPage() {
     <>
       <PageHeading
         title="实验"
-        description="用固定版本的任务集与评分规则集运行 Agent。平台排队，SDK Worker 执行并上报证据。"
+        description="应用或 CI 通过 SDK 上报后，在这里查看任务执行、评分和报告。"
       >
-        <button
-          className="primary"
-          onClick={() => {
-            setKey(crypto.randomUUID());
-            start.reset();
-            setOpen(true);
-          }}
-        >
-          新建实验
-        </button>
+        <Link className="button-link" to="/workspace/agents">
+          配置 SDK 接入
+        </Link>
       </PageHeading>
       {requestedDeletion && (
         <p className="warning-notice">
@@ -155,11 +86,7 @@ export function ExperimentsPage() {
           </Link>
         </p>
       )}
-      <ErrorNotice
-        error={
-          experiments.error ?? agents.error ?? datasets.error ?? suites.error
-        }
-      />
+      <ErrorNotice error={experiments.error} />
       {experiments.isPending ? (
         <Loading />
       ) : experiments.data?.length ? (
@@ -182,8 +109,14 @@ export function ExperimentsPage() {
                       className="experiment-title"
                       to={"/workspace/reports/" + item.id}
                     >
-                      {item.agent_name}
+                      {item.run_name ?? item.agent_name}
                     </Link>
+                    {item.sdk_project && (
+                      <small>
+                        {item.sdk_project} / {item.namespace} ·{" "}
+                        {item.agent_name}
+                      </small>
+                    )}
                     <small>Agent 版本：{item.agent_version}</small>
                     <small>
                       创建于 {new Date(item.created_at).toLocaleString("zh-CN")}
@@ -219,7 +152,14 @@ export function ExperimentsPage() {
                     </small>
                   </td>
                   <td>
-                    <Badge>{executionStatus(item.status)}</Badge>
+                    <Badge>
+                      {item.evaluation_authorized === false &&
+                      item.status !== "CANCELLED"
+                        ? "待评测"
+                        : item.sdk_project && item.status === "ACTIVE"
+                          ? "已上报"
+                          : executionStatus(item.status)}
+                    </Badge>
                   </td>
                   <td>
                     <Link
@@ -265,7 +205,9 @@ export function ExperimentsPage() {
           </table>
         </div>
       ) : (
-        <Empty title="还没有实验">先发布任务集和评分规则集，再创建实验。</Empty>
+        <Empty title="还没有实验">
+          配置 SDK 上报密钥和评分规则集后，在应用中运行并上报任务。
+        </Empty>
       )}
       <div className="pagination">
         <button
@@ -332,100 +274,6 @@ export function ExperimentsPage() {
           )}
         </section>
       )}
-      <Dialog open={open} title="新建实验" onClose={() => setOpen(false)}>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            start.mutate();
-          }}
-        >
-          <label>
-            Agent
-            <select
-              required
-              value={agentId}
-              onChange={(event) => setAgentId(event.target.value)}
-            >
-              <option value="">选择 Agent</option>
-              {agents.data?.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name} · {agent.version}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            任务集版本
-            <select
-              required
-              value={dataset}
-              onChange={(event) => setDataset(event.target.value)}
-            >
-              <option value="">选择已发布版本</option>
-              {datasets.data?.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            评分规则集版本
-            <select
-              required
-              value={suite}
-              onChange={(event) => setSuite(event.target.value)}
-            >
-              <option value="">选择已发布版本</option>
-              {suites.data?.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            每个案例重复次数
-            <input
-              type="number"
-              min={1}
-              max={20}
-              required
-              value={repeat}
-              onChange={(event) => setRepeat(Number(event.target.value))}
-            />
-          </label>
-          <label>
-            执行时限（分钟）
-            <input
-              type="number"
-              min={1}
-              max={10080}
-              required
-              value={minutes}
-              onChange={(event) => setMinutes(Number(event.target.value))}
-            />
-          </label>
-          <p className="hint">
-            模型评审使用个人累计额度。没有在线 Worker 时，任务将等待领取。
-          </p>
-          <EstimateNotice value={estimate.data} error={estimate.error} />
-          <ErrorNotice error={start.error} />
-          <button
-            className="primary"
-            disabled={
-              start.isPending ||
-              !agentId ||
-              !dataset ||
-              !suite ||
-              !estimate.data ||
-              estimate.isFetching
-            }
-          >
-            启动实验
-          </button>
-        </form>
-      </Dialog>
       <Dialog
         open={!!cancelId}
         title="取消实验"

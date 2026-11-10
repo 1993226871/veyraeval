@@ -12,7 +12,7 @@ import {
 } from "../../components/ui";
 import { useWorkspace } from "../auth/AuthProvider";
 import { CatalogEditor } from "./CatalogEditor";
-import { useCatalog, useModels, useVersionOptions } from "./queries";
+import { useCatalog, useModels } from "./queries";
 import { PreviewPanel } from "./PreviewPanel";
 
 const labels = {
@@ -42,7 +42,6 @@ export function CatalogPage({ kind }: { kind: ResourceKind }) {
   const [name, setName] = useState("");
   const models = useModels();
   const [judgeModel, setJudgeModel] = useState("");
-  const evaluatorVersions = useVersionOptions("EVALUATOR");
   const detail = useQuery({
     queryKey: [workspace_id, "resource", selected],
     enabled: !!selected,
@@ -102,7 +101,7 @@ export function CatalogPage({ kind }: { kind: ResourceKind }) {
         description={
           kind === "DATASET"
             ? "逐条编写任务、输入和参考答案，发布后用于实验。"
-            : "在一个规则集中配置检查条件、LLM Rubric 或 Python 评分，整体发布后用于实验。"
+            : "编辑整份规则集 JSON，发布后按版本引用。"
         }
       >
         <button className="primary" onClick={() => setCreateOpen(true)}>
@@ -115,7 +114,7 @@ export function CatalogPage({ kind }: { kind: ResourceKind }) {
       <details className="template-strip">
         <summary>从平台示例开始</summary>
         <p>
-          纯规则示例无需模型费用；规则 + LLM 示例会加入答案可靠性
+          纯规则示例无需模型费用。规则 + LLM 示例会加入答案可靠性
           Rubric，创建后启动实验才会调用模型。
         </p>
         <label>
@@ -142,18 +141,14 @@ export function CatalogPage({ kind }: { kind: ResourceKind }) {
                   (item) => item.id === judgeModel,
                 )!;
                 const bundle = await request(
-                  api.POST("/api/v1/templates/starter/with-judge/copy", {
+                  api.POST("/api/v1/templates/starter-rules/copy", {
                     body: {
                       model_profile_id: model.id,
                       price_version_id: model.price.id,
                     },
                   }),
                 );
-                setSelected(
-                  kind === "DATASET"
-                    ? bundle.dataset_version.resource_id
-                    : bundle.suite_version.resource_id,
-                );
+                setSelected(bundle.resource_id);
               })
             }
           >
@@ -164,17 +159,13 @@ export function CatalogPage({ kind }: { kind: ResourceKind }) {
             onClick={() =>
               action.mutate(async () => {
                 const bundle = await request(
-                  api.POST("/api/v1/templates/starter/copy"),
+                  api.POST("/api/v1/templates/starter-rules/copy"),
                 );
-                setSelected(
-                  kind === "DATASET"
-                    ? bundle.dataset_version.resource_id
-                    : bundle.suite_version.resource_id,
-                );
+                setSelected(bundle.resource_id);
               })
             }
           >
-            复制完整入门示例
+            复制规则评分示例
           </button>
           {templates.data
             ?.filter((item) => item.kind === kind)
@@ -244,8 +235,6 @@ export function CatalogPage({ kind }: { kind: ResourceKind }) {
             resource={detail.data}
             versions={versions.data ?? []}
             loadVersion={loadVersion}
-            models={models.data ?? []}
-            evaluatorVersions={evaluatorVersions.data ?? []}
             onSave={(name, content) =>
               saved(
                 request(

@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import type {
   CatalogResource,
-  ModelChoice,
   PublishedVersion,
   VersionSummary,
 } from "../../api/types";
 import { Dialog, ErrorNotice, Loading } from "../../components/ui";
 import { DatasetFields } from "./DatasetFields";
-import { DefinitionFields, RuleSetFields } from "./RuleSetFields";
 import { objectValue, parseContent, pretty } from "./validation";
 
-export type VersionOption = { id: string; label: string };
 type Props = {
   resource: CatalogResource;
   versions: VersionSummary[];
@@ -18,8 +15,6 @@ type Props = {
   onSave: (name: string, content: Record<string, unknown>) => Promise<unknown>;
   onPublish: () => Promise<unknown>;
   onArchive: () => Promise<unknown>;
-  evaluatorVersions?: VersionOption[];
-  models?: ModelChoice[];
   children?: React.ReactNode;
 };
 
@@ -30,8 +25,6 @@ export function CatalogEditor({
   onSave,
   onPublish,
   onArchive,
-  evaluatorVersions = [],
-  models = [],
   children,
 }: Props) {
   const [version, setVersion] = useState("draft");
@@ -44,14 +37,17 @@ export function CatalogEditor({
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [archive, setArchive] = useState(false);
-  const [existing, setExisting] = useState("");
+  const [source, setSource] = useState(pretty(resource.content));
+  const isRules = resource.kind !== "DATASET";
   const readonly = version !== "draft";
   const dirty =
-    name !== resource.name || pretty(content) !== pretty(resource.content);
+    name !== resource.name ||
+    (isRules ? source : pretty(content)) !== pretty(resource.content);
   useEffect(() => {
     setVersion("draft");
     setName(resource.name);
     setContent(objectValue(resource.content));
+    setSource(pretty(resource.content));
     setError(undefined);
   }, [resource.id, resource.revision]);
   useEffect(() => {
@@ -63,18 +59,9 @@ export function CatalogEditor({
       const current =
         version === "draft" ? resource : await loadVersion(version);
       const value = { ...objectValue(current.content) };
-      if (resource.kind === "SUITE" && Array.isArray(value.entries)) {
-        value.entries = await Promise.all(
-          value.entries.map(async (raw) => {
-            const entry = objectValue(raw);
-            if (entry.definition) return entry;
-            const frozen = await loadVersion(String(entry.evaluator_version));
-            return { ...entry, definition: frozen.content };
-          }),
-        );
-      }
       if (active) {
         setContent(value);
+        setSource(pretty(value));
         setName(current.name);
       }
     }
@@ -135,13 +122,21 @@ export function CatalogEditor({
               if (!name.trim()) throw new Error("请填写名称。");
               await onSave(
                 name.trim(),
-                parseContent(pretty(content), resource.kind),
+                parseContent(isRules ? source : pretty(content), resource.kind),
               );
             });
           }}
         >
           {readonly && (
-            <p className="hint">已发布版本固定保存，修改请回到草稿。</p>
+            <>
+              <p className="hint">已发布版本固定保存，修改请回到草稿。</p>
+              {resource.kind === "SUITE" && (
+                <label>
+                  评分规则版本 ID
+                  <input readOnly value={version} />
+                </label>
+              )}
+            </>
           )}
           <fieldset disabled={readonly || busy} className="catalog-form-body">
             <label>
@@ -156,68 +151,17 @@ export function CatalogEditor({
             {resource.kind === "DATASET" && (
               <DatasetFields content={content} onChange={setContent} />
             )}
-            {resource.kind === "SUITE" && (
-              <>
-                <RuleSetFields
-                  content={content}
-                  models={models}
-                  onChange={setContent}
+            {isRules && (
+              <label>
+                评分规则 JSON
+                <textarea
+                  value={source}
+                  onChange={(event) => setSource(event.target.value)}
+                  rows={24}
+                  spellCheck={false}
+                  style={{ fontFamily: "monospace" }}
                 />
-                {!!evaluatorVersions.length && (
-                  <details>
-                    <summary>从已有规则添加</summary>
-                    <label>
-                      已有评分规则
-                      <select
-                        value={existing}
-                        onChange={(event) => setExisting(event.target.value)}
-                      >
-                        <option value="">选择规则</option>
-                        {evaluatorVersions.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      disabled={!existing || busy}
-                      onClick={() =>
-                        void act(async () => {
-                          const rule = await loadVersion(existing);
-                          setContent({
-                            ...content,
-                            entries: [
-                              ...(Array.isArray(content.entries)
-                                ? content.entries
-                                : []),
-                              {
-                                name: rule.name,
-                                definition: rule.content,
-                                dimension: "outcome",
-                                required_to_pass: true,
-                                weight: 1,
-                              },
-                            ],
-                          });
-                          setExisting("");
-                        })
-                      }
-                    >
-                      添加所选规则
-                    </button>
-                  </details>
-                )}
-              </>
-            )}
-            {resource.kind === "EVALUATOR" && (
-              <DefinitionFields
-                definition={content}
-                index={1}
-                models={models}
-                onChange={setContent}
-              />
+              </label>
             )}
           </fieldset>
           {!readonly && (

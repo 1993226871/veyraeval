@@ -149,6 +149,12 @@ def main():
                 print("Browser session, CSRF and private resource actions verified.", flush=True)
             worker_env = {key: value for key, value in environment.items() if not key.startswith("BOOTSTRAP_ADMIN_")}
             start("worker", [java, "-Xms32m", "-Xmx256m", "-jar", worker_jars[0]], worker_env)
+            if args.web_smoke:
+                push_environment = dict(os.environ, WEB_BASE_URL=web_base, WEB_ACCEPTANCE_ADMIN=email,
+                    WEB_ACCEPTANCE_PASSWORD=password, WEB_ACCEPTANCE_PYTHON=sys.executable)
+                subprocess.run([node, str(ROOT / "web/node_modules/@playwright/test/cli.js"), "test", "workspace-evaluation.spec.ts"],
+                    cwd=ROOT / "web", env=push_environment, check=True, **hidden)
+                print("SDK push, automatic/manual scoring and trend verified in browser.", flush=True)
             examples = []
             for language in ("python", "java"):
                 agent = request("POST", "/api/v1/agents", {"name": "phase-b-" + language, "version": "v1"})

@@ -20,6 +20,13 @@ public class BrowserSecurityConfig {
             return User.withUsername(user.userId().toString()).password(user.passwordHash()).roles(user.admin()?new String[]{"USER","ADMIN"}:new String[]{"USER"}).build();
         };
     }
+    @Bean @Order(0) SecurityFilterChain sdkUploadChain(HttpSecurity http) throws Exception {
+        return http.securityMatcher("/api/v1/sdk-runs:upload")
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth.requestMatchers(org.springframework.http.HttpMethod.POST,"/api/v1/sdk-runs:upload").permitAll().anyRequest().denyAll())
+            .build();
+    }
     @Bean @Order(2) SecurityFilterChain browserChain(HttpSecurity http,IdentityService identities) throws Exception {
         http.authorizeHttpRequests(auth -> auth.requestMatchers("/api/v1/auth/csrf","/api/v1/auth/login","/error").permitAll()
             .requestMatchers("/api/v1/admin/**").hasRole("ADMIN").anyRequest().authenticated())

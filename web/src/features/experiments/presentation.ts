@@ -1,7 +1,10 @@
 import type { Schema } from "../../api/types";
 
 export function experimentTitle(experiment: Schema<"ExperimentSummary">) {
-  return `${experiment.agent_name} · ${experiment.dataset_name} v${experiment.dataset_version_number}`;
+  return (
+    experiment.run_name ??
+    `${experiment.agent_name} · ${experiment.dataset_name} v${experiment.dataset_version_number}`
+  );
 }
 
 export function executionPlan(experiment: Schema<"ExperimentSummary">) {

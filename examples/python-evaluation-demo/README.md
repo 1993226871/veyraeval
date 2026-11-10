@@ -1,5 +1,7 @@
 # Python Agent 完整评测示例
 
+当前工作台使用应用主动上报。使用本目录的 `python -m order_agent.push_demo`，完整步骤见[应用主动上报指南](../../docs/guides/tasks-and-rule-sets.md)。下文记录旧 Worker 接入示例。
+
 从正式 PyPI 安装 SDK，用同一个任务集比较正确版和故意算错金额的 Agent，查看最终答案、工具调用、中间结果及平台评分。支持纯规则与规则 + LLM Judge 两种模式。
 
 完整操作、流程图、评分解释和一次实际运行的匿名结果见 [使用教程](../../docs/guides/python-evaluation-walkthrough.md)。本目录可以复制到自己的项目目录，独立运行，不依赖平台 Java/Python 源码。

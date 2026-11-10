@@ -27,6 +27,8 @@ public class JdbcReevaluationRepository implements ReevaluationRepository {
             var state=jdbc.sql("select t.status execution,e.status experiment from trials t join experiments e on e.id=t.experiment_id where t.id=? and t.workspace_id=? for update of t,e").params(trial,actor.workspaceId())
                 .query((row,index)->Map.entry(row.getString("execution"),row.getString("experiment"))).optional().orElseThrow(ScopeViolationException::new);
             if(Set.of("QUEUED","LEASED","RUNNING","CANCELLED").contains(state.getKey()) || Set.of("CANCELLED","DELETING","DELETED").contains(state.getValue())) throw new CatalogConflictException();
+            if (jdbc.sql("select exists(select 1 from sdk_runs r join trials t on t.experiment_id=r.experiment_id where t.id=? and r.workspace_id=? and not exists(select 1 from grading_jobs g where g.trial_id=t.id and g.initial_run))")
+                    .params(trial,actor.workspaceId()).query(Boolean.class).single()) throw new CatalogConflictException();
             // The nested freeze joins this transaction, after the idempotency check, without an implicit extra run.
             var snapshot=freeze.get(); if(!snapshot.trialId().equals(trial)) throw new IllegalArgumentException("Foreign reevaluation snapshot");
             UUID id=UUID.randomUUID();

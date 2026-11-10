@@ -36,6 +36,13 @@ public class CatalogController {
         var judge=catalog.publish(actor,draft.id());
         return templates.copyStarter(actor,judge.id());
     }
+    @PostMapping("/templates/starter-rules/copy") @org.springframework.transaction.annotation.Transactional
+    public PublishedVersion starterRules(Authentication auth,@RequestBody(required=false) JudgeStarter request) {
+        var actor=current.require(auth);
+        if(request==null) return templates.copyStarterRules(actor,null);
+        var draft=judges.copy(actor,"evidence-support",request.modelProfileId(),request.priceVersionId());
+        return templates.copyStarterRules(actor,catalog.publish(actor,draft.id()).id());
+    }
     @GetMapping("/templates") public List<TemplateService.Template> templates() { return templates.list(); }
     @PostMapping("/templates/{id}/copy") public CatalogResource copy(Authentication auth,@PathVariable String id) { return templates.copy(current.require(auth),id); }
     @PostMapping("/templates/starter/copy") @org.springframework.transaction.annotation.Transactional

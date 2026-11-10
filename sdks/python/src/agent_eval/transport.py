@@ -58,6 +58,9 @@ class HttpTransport:
         except (ValueError, UnicodeError):
             raise ProtocolError(502) from None
 
+    def upload_run(self, body):
+        return self._request("POST", "/sdk-runs:upload", body)
+
     def register(self, agent_id):
         identity = self.instance_id[:80] + ":" + hashlib.sha256(agent_id.encode()).hexdigest()[:32]
         request = {"agent_id": agent_id, "agent_version": self.agent_version, "instance_id": identity,

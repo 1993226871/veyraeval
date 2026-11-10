@@ -25,8 +25,7 @@ it("copies a mixed starter only after selecting a model and never starts a paid 
       if (request.method === "POST") {
         posts.push({ path, body: await request.json() });
         body = {
-          dataset_version: { resource_id: "dataset" },
-          suite_version: { resource_id: "suite" },
+          resource_id: "suite",
         };
       }
       if (path.endsWith("/catalog/suite"))
@@ -67,7 +66,7 @@ it("copies a mixed starter only after selecting a model and never starts a paid 
   await waitFor(() =>
     expect(posts).toEqual([
       {
-        path: "/api/v1/templates/starter/with-judge/copy",
+        path: "/api/v1/templates/starter-rules/copy",
         body: { model_profile_id: "model", price_version_id: "price" },
       },
     ]),

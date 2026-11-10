@@ -88,6 +88,93 @@ class ReportApiIT {
             assertThat(json.readTree(get(owner,"/api/v1/evaluation-runs/"+previewRun).body()).path("purpose").asText()).isEqualTo("PREVIEW");
         }
     }
+    @Test void sdkRunUploadIsScopedAndQueuesOnlyAuthorizedCompleteRuns() throws Exception {
+        var account=identities.createUser(UUID.randomUUID()+"@test.local","Temporary-Password-1",false);
+        var actor=account.actor();
+        var starter=templates.copyStarter(actor);
+        try(var owner=login(account.email()); var anonymous=HttpClient.newHttpClient();
+                var other=login(identities.createUser(UUID.randomUUID()+"@test.local","Temporary-Password-1",false).email())) {
+            var issued=post(owner,"/api/v1/sdk-projects","{\"name\":\"Orders\"}");
+            assertThat(issued.statusCode()).isEqualTo(201);
+            var project=json.readTree(issued.body());
+            assertThat(project.at("/project/auto_evaluate").asBoolean()).isTrue();
+            String secret=project.path("secret").asText();
+            String projectPath="/api/v1/sdk-projects/"+project.at("/project/id").asText();
+            assertThat(get(owner,"/api/v1/sdk-projects").body()).doesNotContain(secret);
+            var csrf=json.readTree(get(owner,"/api/v1/auth/csrf").body());
+            var configure=HttpRequest.newBuilder(uri(projectPath)).header("Content-Type","application/json")
+                .header(csrf.path("header_name").asText(),csrf.path("token").asText())
+                .PUT(HttpRequest.BodyPublishers.ofString("{\"auto_evaluate\":false}")).build();
+            assertThat(owner.send(configure,HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(204);
+
+            var upload=json.createObjectNode().put("run_id",UUID.randomUUID().toString()).put("namespace","regression")
+                .put("name","Order agent v2").put("agent_name","order-agent").put("agent_version","v2")
+                .put("dataset_version","orders-v1").put("suite_version_id",starter.suiteVersion().id().toString());
+            var cases=upload.putArray("cases");
+            for(String id:List.of("a","b")) {
+                var task=cases.addObject().put("case_id",id).put("instruction","Lookup order")
+                    .put("status","SUCCEEDED").put("dropped_count",0);
+                task.putObject("input").put("order_id",id);
+                task.putObject("expected").put("amount",100);
+                task.putObject("output").put("amount",100);
+                task.putArray("events");
+            }
+            assertThat(upload(anonymous,"invalid",upload).statusCode()).isEqualTo(401);
+            var accepted=upload(anonymous,secret,upload);
+            assertThat(accepted.statusCode()).isEqualTo(202);
+            assertThat(upload(anonymous,secret,upload).body()).isEqualTo(accepted.body());
+            String id=json.readTree(accepted.body()).path("id").asText();
+            String runPath="/api/v1/experiments/"+id+"/sdk-run";
+            assertThat(get(other,runPath).statusCode()).isEqualTo(404);
+            assertThat(post(other,runPath+"/evaluate","{}").statusCode()).isEqualTo(404);
+            assertThat(json.readTree(get(owner,runPath).body()).path("phase").asText()).isEqualTo("WAITING");
+            var repository=new io.agenteval.telemetry.JdbcEvidenceRepository(jdbc,transactions,json);
+            var trials=experiments.trials(actor,UUID.fromString(id));
+            var future=Instant.now().plusSeconds(35);
+            repository.freeze(actor,trials.getFirst().id(),false,future);
+            repository.freeze(actor,trials.getLast().id(),false,future);
+            assertThat(sdkJobCount(id)).isZero();
+            var report=json.readTree(get(owner,"/api/v1/reports/experiments/"+id+"/trials").body());
+            assertThat(report.at("/items/0/snapshot_id").asText()).isNotBlank();
+            assertThat(post(owner,runPath+"/evaluate","{}").statusCode()).isEqualTo(202);
+            assertThat(post(owner,runPath+"/evaluate","{}").statusCode()).isEqualTo(202);
+            assertThat(sdkJobCount(id)).isEqualTo(2);
+
+            csrf=json.readTree(get(owner,"/api/v1/auth/csrf").body());
+            configure=HttpRequest.newBuilder(uri(projectPath)).header("Content-Type","application/json")
+                .header(csrf.path("header_name").asText(),csrf.path("token").asText())
+                .PUT(HttpRequest.BodyPublishers.ofString("{\"auto_evaluate\":true}")).build();
+            assertThat(owner.send(configure,HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(204);
+            upload.put("run_id",UUID.randomUUID().toString()).put("name","Order agent v3").put("agent_version","v3");
+            var auto=upload(anonymous,secret,upload);
+            assertThat(auto.statusCode()).isEqualTo(202);
+            String autoId=json.readTree(auto.body()).path("id").asText();
+            var autoTrials=experiments.trials(actor,UUID.fromString(autoId));
+            repository.freeze(actor,autoTrials.getFirst().id(),false,future);
+            assertThat(sdkJobCount(autoId)).isZero();
+            repository.freeze(actor,autoTrials.getLast().id(),false,future);
+            assertThat(sdkJobCount(autoId)).isEqualTo(2);
+            var grading=new io.agenteval.evaluation.EvaluationOrchestrator(
+                new io.agenteval.evaluation.JdbcEvaluationRepository(jdbc,transactions,json),evidence,
+                new io.agenteval.evaluation.RuleEvaluator(),java.time.Clock.offset(java.time.Clock.systemUTC(),java.time.Duration.ofSeconds(60)));
+            grading.schedule(100);
+            for(int i=0;i<20 && grading.runNext();i++) {}
+            var autoReport=json.readTree(get(owner,"/api/v1/reports/experiments/"+autoId).body());
+            assertThat(autoReport.path("pending_attempts").asInt()).isZero();
+            assertThat(autoReport.path("finished_attempts").asInt()).isEqualTo(2);
+        }
+    }
+
+    private int sdkJobCount(String experiment) {
+        return jdbc.sql("select count(*) from grading_jobs g join trials t on t.id=g.trial_id where t.experiment_id=?")
+            .param(UUID.fromString(experiment)).query(Integer.class).single();
+    }
+
+    private HttpResponse<String> upload(HttpClient client,String key,com.fasterxml.jackson.databind.JsonNode body) throws Exception {
+        return client.send(HttpRequest.newBuilder(uri("/api/v1/sdk-runs:upload"))
+            .header("Authorization","Bearer "+key).header("Content-Type","application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(body.toString())).build(),HttpResponse.BodyHandlers.ofString());
+    }
     URI uri(String path) { return URI.create("http://localhost:"+port+path); }
     HttpResponse<String> get(HttpClient client,String path) throws Exception { return client.send(HttpRequest.newBuilder(uri(path)).GET().build(),HttpResponse.BodyHandlers.ofString()); }
     HttpResponse<String> post(HttpClient client,String path,String body) throws Exception {

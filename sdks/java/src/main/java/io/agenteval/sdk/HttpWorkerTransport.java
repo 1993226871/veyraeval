@@ -22,6 +22,10 @@ public final class HttpWorkerTransport implements WorkerTransport {
         if(key==null || key.isBlank() || version==null || version.isBlank() || instance==null || instance.isBlank()) throw new IllegalArgumentException("Missing worker configuration");
         this.base=base.toString().replaceAll("/+$",""); this.key=key; this.version=version; this.instance=instance;
     }
+    UUID uploadRun(com.fasterxml.jackson.databind.JsonNode payload) {
+        return JsonSupport.decode(request("/sdk-runs:upload",payload,null),UploadedRun.class).id();
+    }
+    private record UploadedRun(UUID id) {}
     @Override public UUID register(UUID agent) {
         String identity=instance.substring(0,Math.min(80,instance.length()))+":"+hash(agent.toString()).substring(0,32);
         var request=new RegisterWorkerRequest(agent,version,identity,"1.0","JAVA","0.1.0",1);

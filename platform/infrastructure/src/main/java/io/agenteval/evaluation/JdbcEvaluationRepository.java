@@ -161,7 +161,7 @@ public class JdbcEvaluationRepository implements EvaluationRepository,ReportRepo
         var scores=jdbc.sql(projection).params(experimentId,actor.workspaceId()).query((r,n) -> new ResultRow(r.getObject("run_id",UUID.class),r.getObject("evaluator_version",UUID.class),decode(r.getString("payload")))).list();
         var byRun=new HashMap<UUID,Map<UUID,CriterionResult>>(); for(var score:scores) byRun.computeIfAbsent(score.run(),key -> new HashMap<>()).put(score.version(),score.result());
         var trials=jdbc.sql("""
-            select t.id,t.case_index,t.attempt,t.status,t.started_at,t.evidence_wait_reason,g.id run_id,g.snapshot_id,g.suite_version_id,%s suite_config,g.status evaluation_state,
+            select t.id,t.case_index,t.attempt,t.status,t.started_at,t.evidence_wait_reason,g.id run_id,coalesce(g.snapshot_id,(select s.id from evidence_snapshots s where s.trial_id=t.id order by s.ordinal limit 1)) snapshot_id,g.suite_version_id,%s suite_config,g.status evaluation_state,
               (select case when count(distinct value->>'span_id')=1
                 and count(*) filter(where value->>'event_type'='span.started')>=1
                 and count(*) filter(where value->>'event_type' in ('span.completed','span.failed'))=1

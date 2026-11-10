@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-test("real session, CSRF, immutable publication, and one-time worker credential", async ({
+test("real session, CSRF, immutable rules, and one-time upload credential", async ({
   page,
 }) => {
   const email = process.env.WEB_TEST_EMAIL;
@@ -24,7 +24,7 @@ test("real session, CSRF, immutable publication, and one-time worker credential"
         csrf: !!request.headers()["x-csrf-token"],
       });
   });
-  await page.goto("/workspace/datasets");
+  await page.goto("/workspace/rule-sets");
   await page.getByLabel("邮箱", { exact: true }).fill(email);
   await page.getByLabel("密码", { exact: true }).fill(password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
@@ -36,50 +36,34 @@ test("real session, CSRF, immutable publication, and one-time worker credential"
     page.getByRole("heading", { name: "实验", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "管理后台" })).toHaveCount(0);
-  await page.getByRole("link", { name: "任务集", exact: true }).click();
-  await page.getByRole("button", { name: "新建任务集" }).click();
-  await page.getByLabel("名称", { exact: true }).fill("浏览器集成案例");
-  await page.getByRole("button", { name: "创建草稿" }).click();
-  await expect(page.getByRole("button", { name: "新增任务" })).toBeVisible();
-  await page.getByRole("button", { name: "新增任务", exact: true }).click();
-  await page.getByLabel("任务要求 1", { exact: true }).fill("浏览器测试任务");
-  await page.getByRole("button", { name: "保存草稿", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "发布版本", exact: true }),
-  ).toBeEnabled();
-  await page.getByRole("button", { name: "发布版本", exact: true }).click();
-  await expect(
-    page.getByRole("combobox", { name: "查看版本" }).getByRole("option"),
-  ).toHaveCount(2);
-  await page
-    .getByRole("combobox", { name: "查看版本" })
-    .selectOption({ label: "v1" });
-  await expect(page.getByLabel("任务要求 1", { exact: true })).toBeDisabled();
-  await page.screenshot({
-    path: path.resolve("../.tools/web-dataset-desktop.png"),
-  });
-  await page.getByRole("link", { name: "Agent 接入" }).click();
-  await page.getByRole("button", { name: "注册 Agent" }).click();
-  await page.getByLabel("Agent 名称", { exact: true }).fill("浏览器 Agent");
-  await page.getByRole("button", { name: "注册", exact: true }).click();
-  await page.getByRole("button", { name: "创建接入凭证" }).click();
-  const secret = page.getByLabel("本次接入密钥");
+  await page.getByRole("link", { name: "评分规则集", exact: true }).click();
+  await page.getByText("从平台示例开始", { exact: true }).click();
+  await page.getByRole("button", { name: "复制规则评分示例" }).click();
+  const versions = page.getByRole("combobox", { name: "查看版本" });
+  await expect(versions.getByRole("option")).toHaveCount(2);
+  await versions.selectOption({ label: "v1" });
+  await expect(page.getByLabel("评分规则 JSON")).toBeDisabled();
+  await expect(page.getByLabel("评分规则版本 ID")).not.toBeEmpty();
+  await page.getByRole("link", { name: "SDK 接入" }).click();
+  await page.getByLabel("项目名称").fill("浏览器上报项目");
+  await page.getByRole("button", { name: "创建上报项目" }).click();
+  const secret = page.getByLabel("本次上报密钥");
   await expect(secret).not.toBeEmpty();
   await page.getByRole("button", { name: "我已保存" }).click();
   await expect(secret).not.toBeVisible();
+  await expect(page.getByRole("switch", { name: "自动评测" })).toBeChecked();
+  await page.getByRole("switch", { name: "自动评测" }).click();
+  await expect(
+    page.getByRole("switch", { name: "自动评测" }),
+  ).not.toBeChecked();
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Agent 接入", exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "浏览器 Agent v1" }).click();
-  await expect(page.getByLabel("本次接入密钥")).not.toBeVisible();
-  await page.getByRole("button", { name: "撤销", exact: true }).click();
-  await expect(page.getByText("已撤销", { exact: true })).toBeVisible();
+    page.getByRole("switch", { name: "自动评测" }),
+  ).not.toBeChecked();
+  await expect(secret).not.toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("link", { name: "任务集", exact: true }).click();
-  await page.getByRole("button", { name: /浏览器集成案例/ }).click();
   await page.screenshot({
-    path: path.resolve("../.tools/web-dataset-mobile.png"),
+    path: path.resolve("../.tools/web-sdk-project-mobile.png"),
     fullPage: true,
   });
   expect(
