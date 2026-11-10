@@ -39,7 +39,9 @@ test("explains real SDK results and exports linked manual reviews", async ({
   await page.getByLabel("复核依据").fill("Browser calibration fixture");
   await page.getByRole("button", { name: "追加复核" }).click();
   await expect(
-    page.getByText("Browser calibration fixture", { exact: true }),
+    page
+      .locator(".review-list")
+      .getByText("Browser calibration fixture", { exact: true }),
   ).toBeVisible();
   const downloadEvent = page.waitForEvent("download");
   await page.getByRole("button", { name: "导出 JSON 与证据" }).click();
