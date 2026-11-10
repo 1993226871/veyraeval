@@ -1,5 +1,12 @@
 # Python Agent 接入
 
+## 应用端账号上报
+
+Python 主动上报使用仓库源码中的 `PushClient.login`，由应用指定项目名，首次成功提交后自动创建项目。完整订单示例见[应用端上报指南](tasks-and-rule-sets.md)。
+
+以下章节适用于已发布 SDK 的 Worker 接口。
+
+
 第一次使用可先跟随 [完整 Python 评测示例](python-evaluation-walkthrough.md)：从安装 SDK 到两个 Agent 的对比报告，含独立项目、规则配置和工具轨迹分析。
 
 需要 Python 3.11 或更高版本。SDK `0.1.0` 已发布到 [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.0/)，可直接安装，无需下载仓库。下面的订单示例文件仍位于仓库的 `examples/python-order-agent/`；自己的 Agent 项目只需引入 SDK 并按接入示例注册处理函数。

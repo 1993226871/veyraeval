@@ -1,5 +1,12 @@
 # Java Agent 接入
 
+## 应用端账号上报
+
+Java 主动上报使用仓库源码中的 `PushClient.login(URI, username, password)`。调用 `startRun` 时把项目名作为第一个参数，随后用 `runCase` 和 `submit` 执行并上报。平台端步骤见[应用端上报指南](tasks-and-rule-sets.md)。
+
+以下章节适用于已发布 SDK 的 Worker 接口。
+
+
 需要 JDK 21。SDK `0.1.0` 已发布 Maven Central，在自己的 Agent 项目中添加以下依赖即可，无需下载平台仓库或执行本地 `mvn install`。
 
 ```xml

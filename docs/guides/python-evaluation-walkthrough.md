@@ -1,5 +1,10 @@
 # 使用示例：从 Python Agent 到可追溯的评测报告
 
+## 当前接入入口
+
+第一次接入请按[应用端账号上报指南](tasks-and-rule-sets.md)运行 `order_agent.push_demo`，SDK 会在首次有效上报时创建项目。以下记录旧 Worker 使用示例。
+
+
 本教程来自一次已跑通的完整使用流程。你将用同一组订单任务评测两个 Agent，看到“工具调用正确，但最终答案错误”的差异，并定位错误发生在哪一步。
 
 示例代码位于 [examples/python-evaluation-demo](../../examples/python-evaluation-demo/README.md)。它是独立的用户 Agent 项目，通过正式 PyPI 的 `veyraeval-sdk==0.1.1` 接入平台；平台端无需知道你的 Agent 内部实现。

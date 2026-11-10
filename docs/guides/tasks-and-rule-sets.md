@@ -36,15 +36,22 @@
 
 ## 在应用执行并上报
 
-当前主动上报接口使用本仓库中的 SDK 源码。登录后 SDK 使用平台会话上报，保存的重放文件只包含运行数据。会话过期时重新登录并重放已保存的运行。Python 本地安装示例：
+先在「评分规则集 → 从平台示例开始」点击「复制规则评分示例」，打开已发布的 `v1` 并复制版本 ID。这个示例使用三道本地订单任务和确定性评分规则。
+
+在 Windows 的 PowerShell 中从仓库根目录运行：
 
 ```powershell
 python -m pip install -e ./sdks/python -e ./examples/python-evaluation-demo
-python -m order_agent.push_demo --username <平台邮箱> --project <项目名> --suite <评分规则版本ID> --variant buggy --ca <本机证书路径>
-python -m order_agent.push_demo --username <平台邮箱> --project <项目名> --suite <评分规则版本ID> --variant correct --ca <本机证书路径>
+$email = "替换成你的平台邮箱"
+$suite = "替换成刚复制的评分规则版本 ID"
+python -m order_agent.push_demo --url "https://localhost:8443" --username $email --project "订单助手评测" --suite $suite --variant correct --ca ".tools/local/tls/server.crt"
 ```
 
-命令会在终端隐藏输入平台密码。订单示例使用同一个 Agent 名称、任务集版本和 namespace，分别上报 v1 和 v2。在自己的应用中可以这样接入：
+命令会提示输入密码，输入时不回显。脚本执行后会打印报告链接。首次上报创建「订单助手评测」项目和「订单助手 v2」运行，三道题全部正确时，报告显示 3/3 通过和三个 `query_order` 工具调用。默认自动评测，报告可能先显示等待证据。远端平台按实际地址配置 `--url`，使用公共信任证书时省略 `--ca`。
+
+如需观察趋势，再使用同样的项目名和规则版本，将 `--variant correct` 换成 `--variant buggy`。脚本会上报同一 Agent 的 v1，使用同一 namespace 和题库版本。
+
+在自己的应用中可以这样接入：
 
 ```python
 from getpass import getpass
