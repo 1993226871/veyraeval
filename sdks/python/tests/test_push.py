@@ -39,3 +39,33 @@ def test_push_run_replays_captured_results_without_running_agent_again(tmp_path)
     assert second["status"] == "FAILED"
     assert "private error" not in file.read_text(encoding="utf-8")
     assert "upload-secret" not in file.read_text(encoding="utf-8")
+
+
+def test_account_login_uses_session_and_project_on_upload():
+    requests = []
+    report = str(uuid4())
+
+    def handle(request):
+        requests.append(request)
+        if request.url.path.endswith("/csrf"):
+            return httpx.Response(200, json={"header_name": "X-CSRF-TOKEN", "token": "csrf"})
+        if request.url.path.endswith("/login"):
+            assert request.headers["X-CSRF-TOKEN"] == "csrf"
+            assert b"username=user%40test.local&password=pass" == request.content
+            return httpx.Response(200, json={"authenticated": True}, headers={"Set-Cookie": "SESSION=test; Path=/"})
+        assert request.url.path == "/api/v1/sdk-runs"
+        assert request.headers["Cookie"] == "SESSION=test"
+        assert request.headers["X-CSRF-TOKEN"] == "csrf"
+        assert "Authorization" not in request.headers
+        assert json.loads(request.content)["project"] == "Orders"
+        assert b"password" not in request.content
+        return httpx.Response(202, json={"id": report})
+
+    with httpx.Client(transport=httpx.MockTransport(handle)) as http:
+        with PushClient.login("https://example.test", "user@test.local", "pass", client=http) as client:
+            run = client.start_run(project="Orders", namespace="regression", name="run", agent_name="agent",
+                                   agent_version="v1", dataset_version="v1", suite_version_id=uuid4())
+            with run.case(id="a", instruction="Read", input={}) as case:
+                case.output = 100
+            assert run.submit() == report
+    assert len(requests) == 4

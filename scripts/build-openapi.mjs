@@ -138,6 +138,7 @@ op('post', '/api/v1/sdk-projects', 'createSdkProject', object({name:text}), obje
 op('put', '/api/v1/sdk-projects/{id}', 'configureSdkProject', object({auto_evaluate:bool}), null, 204);
 op('post', '/api/v1/sdk-projects/{id}/rotate', 'rotateSdkKey', null, object({secret:text}));
 op('post', '/api/v1/sdk-runs:upload', 'uploadSdkRun', ref('SdkRunUpload'), object({id:uuid}), 202, {security:[{upload:[]}]});
+op('post', '/api/v1/sdk-runs', 'uploadSdkAccountRun', object({ ...schemas.SdkRunUpload.properties, project: text }, [...schemas.SdkRunUpload.required, 'project']), object({id:uuid}), 202);
 op('get', '/api/v1/experiments/{id}/sdk-run', 'getSdkRun', null, object({id:uuid,project_id:uuid,project:text,namespace:text,name:text,phase:enumeration(['WAITING','PREPARING','SUBMITTED','CANCELLED']),estimate:ref('ExperimentEstimate')}));
 op('post', '/api/v1/experiments/{id}/sdk-run/evaluate', 'evaluateSdkRun', null, null, 202);
 op('get', '/api/v1/experiment-summaries', 'listExperimentSummaries', null, array(ref('ExperimentSummary')), 200, { query: page });

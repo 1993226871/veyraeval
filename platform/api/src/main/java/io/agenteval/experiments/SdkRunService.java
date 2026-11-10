@@ -54,7 +54,7 @@ public class SdkRunService {
     @Transactional
     public IssuedProject create(WorkspaceActor actor, String name) {
         name = text(name, 100);
-        jdbc.sql("select id from workspaces where id=? for update").param(actor.workspaceId()).query(UUID.class).single();
+        lockWorkspace(actor);
         if (projects(actor).size() >= 100) throw new IllegalArgumentException("Project limit exceeded");
         var project = new Project(UUID.randomUUID(),name,true);
         String secret = newSecret();
@@ -84,6 +84,36 @@ public class SdkRunService {
         if (!jdbc.sql("select exists(select 1 from sdk_projects where secret_hash=?)").param(digest).query(Boolean.class).single())
             throw new InvalidUploadKey();
 
+        return persistUpload(body, () -> jdbc.sql("""
+            select p.id,p.name,p.auto_evaluate,p.workspace_id,w.owner_user_id
+            from sdk_projects p join workspaces w on w.id=p.workspace_id
+            where p.secret_hash=? for update of p
+            """).param(digest).query((r,n) -> new UploadProject(
+                new Project(r.getObject("id",UUID.class),r.getString("name"),r.getBoolean("auto_evaluate")),
+                new WorkspaceActor(r.getObject("owner_user_id",UUID.class),r.getObject("workspace_id",UUID.class),false)))
+            .optional().orElseThrow(InvalidUploadKey::new));
+    }
+
+    @Transactional
+    public UUID upload(WorkspaceActor actor, JsonNode body) {
+        String name = field(body,"project",100);
+        return persistUpload(body, () -> {
+            lockWorkspace(actor);
+            var project = jdbc.sql("select id,name,auto_evaluate from sdk_projects where workspace_id=? and name=? for update")
+                .params(actor.workspaceId(),name)
+                .query((r,n) -> new Project(r.getObject("id",UUID.class),r.getString("name"),r.getBoolean("auto_evaluate")))
+                .optional().orElseGet(() -> {
+                    if (projects(actor).size() >= 100) throw new IllegalArgumentException("Project limit exceeded");
+                    var created = new Project(UUID.randomUUID(),name,true);
+                    jdbc.sql("insert into sdk_projects(id,workspace_id,name) values (?,?,?)")
+                        .params(created.id(),actor.workspaceId(),name).update();
+                    return created;
+                });
+            return new UploadProject(project,actor);
+        });
+    }
+
+    private UUID persistUpload(JsonNode body, java.util.function.Supplier<UploadProject> resolve) {
         UUID runId = UUID.fromString(field(body,"run_id",36));
         UUID suite = UUID.fromString(field(body,"suite_version_id",36));
         String namespace = field(body,"namespace",100);
@@ -99,14 +129,7 @@ public class SdkRunService {
         CatalogService.validateDataset(dataset);
 
         lockScheduler();
-        var upload = jdbc.sql("""
-            select p.id,p.name,p.auto_evaluate,p.workspace_id,w.owner_user_id
-            from sdk_projects p join workspaces w on w.id=p.workspace_id
-            where p.secret_hash=? for update of p
-            """).param(digest).query((r,n) -> new UploadProject(
-                new Project(r.getObject("id",UUID.class),r.getString("name"),r.getBoolean("auto_evaluate")),
-                new WorkspaceActor(r.getObject("owner_user_id",UUID.class),r.getObject("workspace_id",UUID.class),false)))
-            .optional().orElseThrow(InvalidUploadKey::new);
+        var upload = resolve.get();
         UUID project = upload.project().id();
         var actor = upload.actor();
         var prior = jdbc.sql("select experiment_id,request_hash from sdk_runs where project_id=? and client_run_id=?")
@@ -115,7 +138,7 @@ public class SdkRunService {
             if (!prior.get().getValue().equals(fingerprint)) throw new CatalogConflictException();
             return prior.get().getKey();
         }
-        jdbc.sql("select id from workspaces where id=? for update").param(actor.workspaceId()).query(UUID.class).single();
+        lockWorkspace(actor);
         var version = catalog.version(actor,suite);
         if (version.kind() != ResourceKind.SUITE) throw new IllegalArgumentException("Published rule set required");
         UUID datasetId = resolveDataset(actor,project,namespace,datasetVersion,dataset);
@@ -227,6 +250,9 @@ public class SdkRunService {
         return cases;
     }
 
+    private void lockWorkspace(WorkspaceActor actor) {
+        jdbc.sql("select id from workspaces where id=? for update").param(actor.workspaceId()).query(UUID.class).single();
+    }
     private void lockScheduler() { jdbc.sql("select id from scheduler_guard where id=1 for update").query(Integer.class).single(); }
     private static String field(JsonNode body, String name, int limit) {
         var value = body.path(name);

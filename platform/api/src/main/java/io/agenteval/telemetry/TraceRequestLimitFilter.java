@@ -9,9 +9,12 @@ import java.io.IOException;
 /** Bound both advertised and chunked request bodies before message conversion allocates them. */
 @Component
 public final class TraceRequestLimitFilter extends OncePerRequestFilter {
-    @Override protected boolean shouldNotFilter(HttpServletRequest request) { return !request.getServletPath().endsWith("/events:batch") && !request.getRequestURI().endsWith("/events:batch") && !request.getServletPath().equals("/api/v1/sdk-runs:upload"); }
+    @Override protected boolean shouldNotFilter(HttpServletRequest request) { return !request.getServletPath().endsWith("/events:batch") && !request.getRequestURI().endsWith("/events:batch") && !isSdkUpload(request); }
+    private boolean isSdkUpload(HttpServletRequest request) {
+        return "POST".equals(request.getMethod()) && java.util.Set.of("/api/v1/sdk-runs","/api/v1/sdk-runs:upload").contains(request.getServletPath());
+    }
     @Override protected void doFilterInternal(HttpServletRequest req,HttpServletResponse res,FilterChain chain) throws ServletException,IOException {
-        int limit = req.getServletPath().equals("/api/v1/sdk-runs:upload") ? 8*1024*1024 : 1024*1024;
+        int limit = isSdkUpload(req) ? 8*1024*1024 : 1024*1024;
         if(req.getContentLengthLong()>limit) { ApiProblems.write(res,413,"TRACE_LIMIT_EXCEEDED"); return; }
         var wrapped=new HttpServletRequestWrapper(req) {
             private ServletInputStream bounded;

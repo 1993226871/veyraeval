@@ -292,6 +292,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/sdk-runs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["uploadSdkAccountRun"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/experiments/{id}/sdk-run": {
     parameters: {
       query?: never;
@@ -2708,6 +2724,63 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["SdkRunUpload"];
+      };
+    };
+    responses: {
+      /** @description Success. */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            /** Format: uuid */
+            id: string;
+          };
+        };
+      };
+      400: components["responses"]["Rejected"];
+      401: components["responses"]["Rejected"];
+      403: components["responses"]["Rejected"];
+      404: components["responses"]["Rejected"];
+      409: components["responses"]["Rejected"];
+      413: components["responses"]["Rejected"];
+      429: components["responses"]["Rejected"];
+      503: components["responses"]["Rejected"];
+    };
+  };
+  uploadSdkAccountRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          /** Format: uuid */
+          run_id: string;
+          namespace: string;
+          name: string;
+          agent_name: string;
+          agent_version: string;
+          dataset_version: string;
+          /** Format: uuid */
+          suite_version_id: string;
+          cases: {
+            case_id: string;
+            instruction: string;
+            input: unknown;
+            expected?: unknown;
+            output: unknown;
+            /** @enum {string} */
+            status: "SUCCEEDED" | "FAILED" | "TIMED_OUT";
+            dropped_count: number;
+            events: components["schemas"]["TraceEvent"][];
+          }[];
+          project: string;
+        };
       };
     };
     responses: {

@@ -162,6 +162,19 @@ class ReportApiIT {
             var autoReport=json.readTree(get(owner,"/api/v1/reports/experiments/"+autoId).body());
             assertThat(autoReport.path("pending_attempts").asInt()).isZero();
             assertThat(autoReport.path("finished_attempts").asInt()).isEqualTo(2);
+            upload.put("project","Account orders").put("run_id",UUID.randomUUID().toString());
+            var noCsrf=HttpRequest.newBuilder(uri("/api/v1/sdk-runs")).header("Content-Type","application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(upload.toString())).build();
+            assertThat(owner.send(noCsrf,HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(403);
+            assertThat(post(other,"/api/v1/sdk-runs",upload.toString()).statusCode()).isEqualTo(404);
+            assertThat(json.readTree(get(other,"/api/v1/sdk-projects").body())).isEmpty();
+            var accountUpload=post(owner,"/api/v1/sdk-runs",upload.toString());
+            assertThat(accountUpload.statusCode()).isEqualTo(202);
+            assertThat(post(owner,"/api/v1/sdk-runs",upload.toString()).body()).isEqualTo(accountUpload.body());
+            var accountProject=json.readTree(get(owner,"/api/v1/sdk-projects").body()).get(0);
+            assertThat(accountProject.path("name").asText()).isEqualTo("Account orders");
+            assertThat(accountProject.path("auto_evaluate").asBoolean()).isTrue();
+
         }
     }
 

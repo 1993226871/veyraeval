@@ -61,20 +61,16 @@ test("HTTPS app pushes runs, evaluates automatically or manually, compares and d
     .click();
   const suite = ((await (await copied).json()) as { id: string }).id;
   await page.getByRole("link", { name: "SDK 接入", exact: true }).click();
-  await page.getByLabel("项目名称").fill("Browser orders");
-  await page.getByRole("button", { name: "创建上报项目" }).click();
-  const key = page.getByLabel("本次上报密钥");
-  await expect(key).not.toBeEmpty();
-  const secret = await key.inputValue();
-  await page.getByRole("button", { name: "我已保存" }).click();
+  await expect(
+    page.getByText("完成第一次 SDK 上报后，项目会显示在这里。"),
+  ).toBeVisible();
   const auto = page.getByRole("switch", { name: "自动评测" });
-  await expect(auto).toBeChecked();
   async function push(version: string, amount: number) {
     const script = [
       "import os",
       "from agent_eval import PushClient, span",
-      "with PushClient(os.environ['WEB_BASE_URL'], os.environ['UPLOAD_KEY'], ca_cert=os.environ.get('WEB_ACCEPTANCE_CA')) as client:",
-      "    run = client.start_run(namespace='regression', name='Orders ' + os.environ['AGENT_VERSION'], agent_name='Browser order agent', agent_version=os.environ['AGENT_VERSION'], dataset_version='orders-v1', suite_version_id=os.environ['SUITE_VERSION'])",
+      "with PushClient.login(os.environ['WEB_BASE_URL'], os.environ['UPLOAD_USERNAME'], os.environ['UPLOAD_PASSWORD'], ca_cert=os.environ.get('WEB_ACCEPTANCE_CA')) as client:",
+      "    run = client.start_run(project='Browser orders', namespace='regression', name='Orders ' + os.environ['AGENT_VERSION'], agent_name='Browser order agent', agent_version=os.environ['AGENT_VERSION'], dataset_version='orders-v1', suite_version_id=os.environ['SUITE_VERSION'])",
       "    with run.case(id='A', instruction='Query order A', input={'order_id':'A'}, expected={'amount':100}) as case:",
       "        with span('tool','query_order', {'order_id':'A'}) as tool:",
       "            tool.output = {'amount':100}",
@@ -86,7 +82,8 @@ test("HTTPS app pushes runs, evaluates automatically or manually, compares and d
       env: {
         ...process.env,
         PYTHONPATH: path.resolve("../sdks/python/src"),
-        UPLOAD_KEY: secret,
+        UPLOAD_USERNAME: email,
+        UPLOAD_PASSWORD: next,
         SUITE_VERSION: suite,
         AGENT_VERSION: version,
         ORDER_AMOUNT: String(amount),
@@ -112,6 +109,11 @@ test("HTTPS app pushes runs, evaluates automatically or manually, compares and d
   }
   const first = await push("v1", 120);
   await waitScored(first, 0);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Browser orders" }),
+  ).toBeVisible();
+  await expect(auto).toBeChecked();
   await auto.click();
   await expect(auto).not.toBeChecked();
   const second = await push("v2", 100);

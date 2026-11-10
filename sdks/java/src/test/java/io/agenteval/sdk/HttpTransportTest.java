@@ -55,6 +55,40 @@ class HttpTransportTest {
             assertThat(first.toString()).doesNotContain("fixture-key");
         } finally { server.stop(0); }
     }
+    @Test void logsInAndUploadsToTheNamedProject() throws Exception {
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        var report=UUID.randomUUID();
+        var requests=new ConcurrentLinkedQueue<String>();
+        server.createContext("/api/v1",exchange -> {
+            var path=exchange.getRequestURI().getPath();
+            requests.add(path);
+            Object result;
+            if(path.endsWith("/csrf")) result=Map.of("header_name","X-CSRF-TOKEN","token","csrf");
+            else if(path.endsWith("/login")) {
+                assertThat(exchange.getRequestHeaders().getFirst("X-CSRF-TOKEN")).isEqualTo("csrf");
+                exchange.getResponseHeaders().add("Set-Cookie","SESSION=test; Path=/");
+                result=Map.of("authenticated",true);
+            } else {
+                assertThat(exchange.getRequestHeaders().getFirst("Cookie")).contains("SESSION=test");
+                assertThat(exchange.getRequestHeaders().getFirst("Authorization")).isNull();
+                var body=JsonSupport.tree(new String(exchange.getRequestBody().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
+                assertThat(body.path("project").asText()).isEqualTo("Orders");
+                assertThat(body.has("password")).isFalse();
+                result=Map.of("id",report);
+            }
+            byte[] response=JsonSupport.encode(result).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200,response.length);
+            exchange.getResponseBody().write(response);
+            exchange.close();
+        });
+        server.start();
+        try(var client=PushClient.login(URI.create("http://127.0.0.1:"+server.getAddress().getPort()),"user@test.local","fixture-password")) {
+            var run=client.startRun("Orders","regression","Order v2","orders","v2","orders-v1",UUID.randomUUID());
+            run.runCase("A","Query order",Map.of("id","A"),null,() -> 100);
+            assertThat(run.submit()).isEqualTo(report);
+            assertThat(requests).containsExactly("/api/v1/auth/csrf","/api/v1/auth/login","/api/v1/auth/csrf","/api/v1/sdk-runs");
+        } finally { server.stop(0); }
+    }
     @Test void limitsResponseBodyBeforeFullyBufferingIt() throws Exception {
         var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
         server.createContext("/api/v1",exchange -> { exchange.getRequestBody().readAllBytes(); exchange.sendResponseHeaders(200,1024*1024+1); try { exchange.getResponseBody().write(new byte[1024*1024+1]); } finally { exchange.close(); } }); server.start();

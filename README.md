@@ -29,7 +29,7 @@
 
 <a id="overview"></a>
 
-应用通过 SDK 上报 Agent、任务和执行轨迹。工作台管理项目密钥与 JSON 评分规则，并提供自动或手动评测、报告和评分趋势。参阅[应用主动上报指南](docs/guides/tasks-and-rule-sets.md)。
+应用通过 SDK 上报 Agent、任务和执行轨迹。工作台管理 SDK 上报项目与 JSON 评分规则，并提供自动或手动评测、报告和评分趋势。参阅[应用主动上报指南](docs/guides/tasks-and-rule-sets.md)。
 已完成本地部署的 Windows 用户可双击根目录 `start.cmd` 启动，使用 `status.cmd` 查看状态、`stop.cmd` 停止服务并保留数据。首次安装及配置路径参数见[快速开始](docs/guides/quickstart.md)。
 
 ## Overview
@@ -59,7 +59,7 @@ flowchart LR
         Agent --> SDK[Java / Python SDK 收集结果和轨迹]
     end
     subgraph Platform[评测平台]
-        Intake[项目密钥校验与上报] --> Evidence[冻结整轮证据]
+        Intake[账号会话校验与上报] --> Evidence[冻结整轮证据]
         Evidence --> Gate[自动或手动评测]
         Gate --> Eval[规则 / LLM Judge / 自定义 Python]
         Eval --> Report[报告、版本对比与评分趋势]

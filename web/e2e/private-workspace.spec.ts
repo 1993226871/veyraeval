@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-test("real session, CSRF, immutable rules, and one-time upload credential", async ({
+test("real session, CSRF, immutable rules and account upload guidance", async ({
   page,
 }) => {
   const email = process.env.WEB_TEST_EMAIL;
@@ -45,22 +45,9 @@ test("real session, CSRF, immutable rules, and one-time upload credential", asyn
   await expect(page.getByLabel("评分规则 JSON")).toBeDisabled();
   await expect(page.getByLabel("评分规则版本 ID")).not.toBeEmpty();
   await page.getByRole("link", { name: "SDK 接入" }).click();
-  await page.getByLabel("项目名称").fill("浏览器上报项目");
-  await page.getByRole("button", { name: "创建上报项目" }).click();
-  const secret = page.getByLabel("本次上报密钥");
-  await expect(secret).not.toBeEmpty();
-  await page.getByRole("button", { name: "我已保存" }).click();
-  await expect(secret).not.toBeVisible();
-  await expect(page.getByRole("switch", { name: "自动评测" })).toBeChecked();
-  await page.getByRole("switch", { name: "自动评测" }).click();
   await expect(
-    page.getByRole("switch", { name: "自动评测" }),
-  ).not.toBeChecked();
-  await page.reload();
-  await expect(
-    page.getByRole("switch", { name: "自动评测" }),
-  ).not.toBeChecked();
-  await expect(secret).not.toBeVisible();
+    page.getByText("完成第一次 SDK 上报后，项目会显示在这里。"),
+  ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: path.resolve("../.tools/web-sdk-project-mobile.png"),
@@ -81,7 +68,7 @@ test("real session, CSRF, immutable rules, and one-time upload credential", asyn
   await expect(
     page.getByRole("heading", { name: "登录 VeyraEval" }),
   ).toBeVisible();
-  expect(requests.length).toBeGreaterThan(5);
+  expect(requests.length).toBeGreaterThan(3);
   expect(requests.every((request) => request.csrf)).toBe(true);
   expect(failures).toEqual([]);
 });

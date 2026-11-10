@@ -22,13 +22,13 @@ class TransportUnavailable(RuntimeError):
 class HttpTransport:
     heartbeat_seconds = 15
 
-    def __init__(self, base_url, api_key, agent_version="v1", instance_id=None, client=None, *, ca_cert=None):
+    def __init__(self, base_url, api_key, agent_version="v1", instance_id=None, client=None, *, ca_cert=None, account_session=False):
         url = urlsplit(base_url)
         if url.scheme not in {"https", "http"} or not url.hostname or url.username or url.password or url.query or url.fragment:
             raise ValueError("Invalid platform URL")
         if url.scheme == "http" and url.hostname not in {"localhost", "127.0.0.1", "::1"}:
             raise ValueError("Use HTTPS for remote platforms")
-        if not api_key or not agent_version:
+        if (not api_key and not account_session) or not agent_version:
             raise ValueError("Missing worker configuration")
         self.base_url = base_url.rstrip("/")
         self.agent_version = agent_version
@@ -37,12 +37,13 @@ class HttpTransport:
                                               verify=ssl.create_default_context(cafile=ca_cert) if ca_cert else True)
         self._key = api_key
 
-    def _request(self, method, path, body=None, assignment=None):
-        headers = {"Authorization": "Bearer " + self._key}
+    def _request(self, method, path, body=None, assignment=None, *, headers=None, form=None):
+        if headers is None:
+            headers = {"Authorization": "Bearer " + self._key} if self._key else {}
         if assignment:
             headers["X-Attempt-Token"] = assignment["attempt_token"]
         try:
-            with self._client.stream(method, self.base_url + "/api/v1" + path, json=body, headers=headers) as response:
+            with self._client.stream(method, self.base_url + "/api/v1" + path, json=body, data=form, headers=headers, follow_redirects=False) as response:
                 if response.status_code == 204:
                     return None
                 if response.status_code < 200 or response.status_code >= 300:
@@ -58,8 +59,20 @@ class HttpTransport:
         except (ValueError, UnicodeError):
             raise ProtocolError(502) from None
 
+    def _csrf(self):
+        token = self._request("GET", "/auth/csrf", headers={})
+        if not isinstance(token, dict) or not all(isinstance(token.get(k), str) and token[k] for k in ("header_name", "token")):
+            raise ProtocolError(502)
+        return {token["header_name"]: token["token"]}
+
+    def login(self, username, password):
+        self._request("POST", "/auth/login", headers=self._csrf(),
+                      form={"username": username, "password": password})
+
     def upload_run(self, body):
-        return self._request("POST", "/sdk-runs:upload", body)
+        if self._key:
+            return self._request("POST", "/sdk-runs:upload", body)
+        return self._request("POST", "/sdk-runs", body, headers=self._csrf())
 
     def register(self, agent_id):
         identity = self.instance_id[:80] + ":" + hashlib.sha256(agent_id.encode()).hexdigest()[:32]

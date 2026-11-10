@@ -2,9 +2,9 @@
 
 ## 在平台配置一次
 
-1. 进入「SDK 接入」，创建项目并保存只显示一次的上报密钥。使用环境变量或 CI 密钥存储设置 `VEYRAEVAL_UPLOAD_KEY`。密钥决定本次上报写入哪个项目。
-2. 进入「评分规则集」，创建或复制示例。直接编辑整份 JSON，保存并发布。打开已发布版本，复制「评分规则版本 ID」。
-3. 项目的「自动评测」默认开启。开关只影响之后新接收的运行。
+1. 进入「评分规则集」，创建或复制示例。直接编辑整份 JSON，保存并发布。打开已发布版本，复制「评分规则版本 ID」。
+2. 应用使用平台账号登录 SDK，并为每轮传入项目名称。首次有效上报时，平台在该账号的工作空间创建项目；后续同名上报归到已有项目。
+3. 「SDK 接入」会显示已上报项目。自动评测默认开启，可在项目首次出现后切换，影响之后接收的运行。
 
 规则集 JSON 示例：
 
@@ -36,22 +36,23 @@
 
 ## 在应用执行并上报
 
-当前主动上报接口使用本仓库中的 SDK 源码。Python 本地安装示例：
+当前主动上报接口使用本仓库中的 SDK 源码。登录后 SDK 使用平台会话上报，保存的重放文件只包含运行数据。会话过期时重新登录并重放已保存的运行。Python 本地安装示例：
 
 ```powershell
 python -m pip install -e ./sdks/python -e ./examples/python-evaluation-demo
-python -m order_agent.push_demo --suite <评分规则版本ID> --variant buggy --ca <本机证书路径>
-python -m order_agent.push_demo --suite <评分规则版本ID> --variant correct --ca <本机证书路径>
+python -m order_agent.push_demo --username <平台邮箱> --project <项目名> --suite <评分规则版本ID> --variant buggy --ca <本机证书路径>
+python -m order_agent.push_demo --username <平台邮箱> --project <项目名> --suite <评分规则版本ID> --variant correct --ca <本机证书路径>
 ```
 
-订单示例使用同一个 Agent 名称、任务集版本和 namespace，分别上报 v1 和 v2。在自己的应用中可以这样接入：
+命令会在终端隐藏输入平台密码。订单示例使用同一个 Agent 名称、任务集版本和 namespace，分别上报 v1 和 v2。在自己的应用中可以这样接入：
 
 ```python
-import os
+from getpass import getpass
 from agent_eval import PushClient
 
-with PushClient("https://eval.example.com", os.environ["VEYRAEVAL_UPLOAD_KEY"]) as client:
+with PushClient.login("https://eval.example.com", "user@example.com", getpass("平台密码: ")) as client:
     run = client.start_run(
+        project="订单助手评测",
         namespace="订单回归",
         name="订单助手 v2",
         agent_name="订单助手",
@@ -69,7 +70,7 @@ with PushClient("https://eval.example.com", os.environ["VEYRAEVAL_UPLOAD_KEY"]) 
     report_id = run.submit()
 ```
 
-已有的 `@observe("tool")` 和 `span(...)` 会把内部调用收集到当前任务轨迹。Java SDK 提供同样的 `PushClient.startRun`、`runCase` 和 `submit`，可继续用 `Telemetry.tool` 和 `Telemetry.span` 打点。
+已有的 `@observe("tool")` 和 `span(...)` 会把内部调用收集到当前任务轨迹。Java SDK 使用 `PushClient.login` 登录，然后调用 `startRun`（第一个参数为项目名）、`runCase` 和 `submit`，可继续用 `Telemetry.tool` 和 `Telemetry.span` 打点。
 
 - `namespace` 用于在项目内归类。应用指定 Agent 名称、版本、运行显示名和任务集版本。每道题使用稳定、唯一的 `case_id`。同一项目、namespace 和任务集版本下，题目、输入或参考答案改动后使用新版本。
 - 一轮提交包含已执行完的任务与内联轨迹，最多 1000 道题、2000 个轨迹事件和 8 MiB 请求。大批评测按应用侧约定拆分并标明分组。评分需要的输入和输出应在上报前按业务规则脱敏。

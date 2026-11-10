@@ -206,7 +206,7 @@ export function ExperimentsPage() {
         </div>
       ) : (
         <Empty title="还没有实验">
-          配置 SDK 上报密钥和评分规则集后，在应用中运行并上报任务。
+          发布评分规则后，在应用中使用账号登录 SDK 并上报任务。
         </Empty>
       )}
       <div className="pagination">

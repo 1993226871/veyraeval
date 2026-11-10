@@ -41,12 +41,25 @@ class _Capture:
 
 
 class PushClient:
-    """Upload completed runs using a project upload key."""
+    """Upload completed runs using an authenticated account session."""
 
-    def __init__(self, platform_url, upload_key, *, ca_cert=None, client=None):
-        self._transport = HttpTransport(platform_url, upload_key, client=client, ca_cert=ca_cert)
+    def __init__(self, platform_url, upload_key=None, *, ca_cert=None, client=None):
+        self._transport = HttpTransport(platform_url, upload_key, client=client, ca_cert=ca_cert,
+                                        account_session=upload_key is None)
         self._upload_key = upload_key
         self._owns_client = client is None
+
+    @classmethod
+    def login(cls, platform_url, username, password, *, ca_cert=None, client=None):
+        if not username or not password:
+            raise ValueError("Username and password required")
+        instance = cls(platform_url, ca_cert=ca_cert, client=client)
+        try:
+            instance._transport.login(username, password)
+        except Exception:
+            instance.close()
+            raise
+        return instance
 
     def close(self):
         if self._owns_client:
@@ -58,8 +71,10 @@ class PushClient:
     def __exit__(self, *_):
         self.close()
 
-    def start_run(self, *, namespace, name, agent_name, agent_version, dataset_version, suite_version_id):
-        return PushRun(self, {
+    def start_run(self, *, namespace, name, agent_name, agent_version, dataset_version, suite_version_id, project=None):
+        if self._upload_key is None and (not isinstance(project, str) or not project.strip()):
+            raise ValueError("Project name required")
+        payload = {
             "run_id": str(uuid4()),
             "namespace": namespace,
             "name": name,
@@ -68,7 +83,10 @@ class PushClient:
             "dataset_version": dataset_version,
             "suite_version_id": str(UUID(str(suite_version_id))),
             "cases": [],
-        })
+        }
+        if project is not None:
+            payload["project"] = project
+        return PushRun(self, payload)
 
     def upload(self, payload):
         if len(encode(payload)) > MAX_UPLOAD_BYTES:

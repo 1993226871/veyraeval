@@ -21,8 +21,35 @@ public final class PushClient implements AutoCloseable {
         this.key = uploadKey;
     }
 
+    private PushClient(HttpWorkerTransport transport) {
+        this.transport=transport;
+        this.key=null;
+    }
+
+    public static PushClient login(URI platform,String username,String password) {
+        if(username==null || username.isBlank() || password==null || password.isEmpty())
+            throw new IllegalArgumentException("Username and password required");
+        var transport=new HttpWorkerTransport(platform,null,"push",UUID.randomUUID().toString(),
+            java.time.Duration.ofSeconds(25),true);
+        try { transport.login(username,password); return new PushClient(transport); }
+        catch(RuntimeException failure) { transport.close(); throw failure; }
+    }
+
+    public Run startRun(String project,String namespace,String name,String agentName,String agentVersion,
+            String datasetVersion,UUID suiteVersionId) {
+        if(project==null || project.isBlank()) throw new IllegalArgumentException("Project name required");
+        var run=buildRun(namespace,name,agentName,agentVersion,datasetVersion,suiteVersionId);
+        run.payload.put("project",project);
+        return run;
+    }
+
     public Run startRun(String namespace, String name, String agentName, String agentVersion,
             String datasetVersion, UUID suiteVersionId) {
+        if(key==null) throw new IllegalArgumentException("Project name required");
+        return buildRun(namespace,name,agentName,agentVersion,datasetVersion,suiteVersionId);
+    }
+
+    private Run buildRun(String namespace,String name,String agentName,String agentVersion,String datasetVersion,UUID suiteVersionId) {
         var payload = JsonNodeFactory.instance.objectNode().put("run_id",UUID.randomUUID().toString())
             .put("namespace",namespace).put("name",name).put("agent_name",agentName).put("agent_version",agentVersion)
             .put("dataset_version",datasetVersion).put("suite_version_id",suiteVersionId.toString());
@@ -74,7 +101,7 @@ public final class PushClient implements AutoCloseable {
             if(expected!=null) item.set("expected",expected.deepCopy());
             item.putNull("output").put("status","FAILED");
             var capture = new Capture();
-            var telemetry = new Telemetry(UUID.randomUUID(),UUID.randomUUID().toString().replace("-",""),capture,List.of(key));
+            var telemetry = new Telemetry(UUID.randomUUID(),UUID.randomUUID().toString().replace("-",""),capture,key==null?List.of():List.of(key));
             ids.add(id);
             active=true;
             try(var context=telemetry.activate(); var root=Telemetry.span("agent",payload.path("agent_name").asText(),input)) {

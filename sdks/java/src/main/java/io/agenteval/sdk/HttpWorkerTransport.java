@@ -9,22 +9,50 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public final class HttpWorkerTransport implements WorkerTransport {
-    private final HttpClient client=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).followRedirects(HttpClient.Redirect.NEVER).build();
+    private final HttpClient client;
     private final String base,key,version,instance;
     private final Duration timeout;
     public HttpWorkerTransport(URI base,String key,String version,String instance) {
         this(base,key,version,instance,Duration.ofSeconds(25));
     }
     HttpWorkerTransport(URI base,String key,String version,String instance,Duration timeout) {
+        this(base,key,version,instance,timeout,false);
+    }
+    HttpWorkerTransport(URI base,String key,String version,String instance,Duration timeout,boolean accountSession) {
+        var builder=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).followRedirects(HttpClient.Redirect.NEVER);
+        if(accountSession) builder.cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ORIGINAL_SERVER));
+        this.client=builder.build();
         if(timeout.isZero() || timeout.isNegative()) throw new IllegalArgumentException("Invalid timeout"); this.timeout=timeout;
         if(base.getHost()==null || base.getUserInfo()!=null || base.getQuery()!=null || base.getFragment()!=null || !Set.of("https","http").contains(base.getScheme())) throw new IllegalArgumentException("Invalid platform URL");
         if(base.getScheme().equals("http") && !Set.of("localhost","127.0.0.1","[::1]","::1").contains(base.getHost())) throw new IllegalArgumentException("Use HTTPS for remote platforms");
-        if(key==null || key.isBlank() || version==null || version.isBlank() || instance==null || instance.isBlank()) throw new IllegalArgumentException("Missing worker configuration");
+        if((!accountSession && (key==null || key.isBlank())) || version==null || version.isBlank() || instance==null || instance.isBlank()) throw new IllegalArgumentException("Missing worker configuration");
         this.base=base.toString().replaceAll("/+$",""); this.key=key; this.version=version; this.instance=instance;
     }
     UUID uploadRun(com.fasterxml.jackson.databind.JsonNode payload) {
-        return JsonSupport.decode(request("/sdk-runs:upload",payload,null),UploadedRun.class).id();
+        if(key!=null) return JsonSupport.decode(request("/sdk-runs:upload",payload,null),UploadedRun.class).id();
+        var csrf=csrf();
+        var response=send(HttpRequest.newBuilder(URI.create(base+"/api/v1/sdk-runs")).timeout(timeout)
+            .header(csrf.headerName(),csrf.token()).header("Content-Type","application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(payload.toString())).build());
+        return JsonSupport.decode(checked(response),UploadedRun.class).id();
     }
+    void login(String username,String password) {
+        var csrf=csrf();
+        var form="username="+URLEncoder.encode(username,StandardCharsets.UTF_8)
+            +"&password="+URLEncoder.encode(password,StandardCharsets.UTF_8);
+        checked(send(HttpRequest.newBuilder(URI.create(base+"/api/v1/auth/login")).timeout(timeout)
+            .header(csrf.headerName(),csrf.token()).header("Content-Type","application/x-www-form-urlencoded")
+            .POST(HttpRequest.BodyPublishers.ofString(form)).build()));
+    }
+    private Csrf csrf() {
+        return JsonSupport.decode(checked(send(HttpRequest.newBuilder(URI.create(base+"/api/v1/auth/csrf"))
+            .timeout(timeout).GET().build())),Csrf.class);
+    }
+    private String checked(HttpResponse<byte[]> response) {
+        if(response.statusCode()<200 || response.statusCode()>=300) throw new WorkerRejectedException(response.statusCode());
+        return new String(response.body(),StandardCharsets.UTF_8);
+    }
+    private record Csrf(String headerName,String token) {}
     private record UploadedRun(UUID id) {}
     @Override public UUID register(UUID agent) {
         String identity=instance.substring(0,Math.min(80,instance.length()))+":"+hash(agent.toString()).substring(0,32);

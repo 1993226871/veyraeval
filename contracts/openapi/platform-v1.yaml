@@ -1397,6 +1397,160 @@
         ]
       }
     },
+    "/api/v1/sdk-runs": {
+      "post": {
+        "operationId": "uploadSdkAccountRun",
+        "tags": [
+          "sdk-runs"
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "401": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "403": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "404": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "409": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "413": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "429": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Rejected"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "run_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "namespace": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "agent_name": {
+                    "type": "string"
+                  },
+                  "agent_version": {
+                    "type": "string"
+                  },
+                  "dataset_version": {
+                    "type": "string"
+                  },
+                  "suite_version_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "cases": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "case_id": {
+                          "type": "string"
+                        },
+                        "instruction": {
+                          "type": "string"
+                        },
+                        "input": {},
+                        "expected": {},
+                        "output": {},
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "SUCCEEDED",
+                            "FAILED",
+                            "TIMED_OUT"
+                          ]
+                        },
+                        "dropped_count": {
+                          "type": "integer"
+                        },
+                        "events": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/TraceEvent"
+                          }
+                        }
+                      },
+                      "required": [
+                        "case_id",
+                        "instruction",
+                        "input",
+                        "output",
+                        "status",
+                        "dropped_count",
+                        "events"
+                      ]
+                    }
+                  },
+                  "project": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "run_id",
+                  "namespace",
+                  "name",
+                  "agent_name",
+                  "agent_version",
+                  "dataset_version",
+                  "suite_version_id",
+                  "cases",
+                  "project"
+                ]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrf": []
+          }
+        ]
+      }
+    },
     "/api/v1/experiments/{id}/sdk-run": {
       "get": {
         "operationId": "getSdkRun",

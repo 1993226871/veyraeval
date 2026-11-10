@@ -50,10 +50,18 @@ public class SdkRunController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Map<String,UUID> upload(@RequestHeader(value="Authorization",required=false) String auth, @RequestBody byte[] raw) {
         if (auth==null || !auth.startsWith("Bearer ")) throw new SdkRunService.InvalidUploadKey();
-        JsonNode body;
-        try { body=codec.tree(StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(raw)).toString()); }
+        return Map.of("id",runs.upload(auth.substring(7),decode(raw)));
+    }
+
+    @PostMapping(path="/sdk-runs", consumes=MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public Map<String,UUID> upload(Authentication auth, @RequestBody byte[] raw) {
+        return Map.of("id",runs.upload(current.require(auth),decode(raw)));
+    }
+
+    private JsonNode decode(byte[] raw) {
+        try { return codec.tree(StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(raw)).toString()); }
         catch (IOException invalid) { throw new IllegalArgumentException("Invalid SDK upload",invalid); }
-        return Map.of("id",runs.upload(auth.substring(7),body));
     }
 
     @GetMapping("/experiments/{id}/sdk-run")

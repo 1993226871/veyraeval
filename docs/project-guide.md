@@ -151,7 +151,7 @@ flowchart TD
 下面只列入Git可分发源码/配置/测试/文档。排除`target/`、`node_modules/`、`.tools/`、本地spool、环境密钥和已停止跟踪的私人过程文档；并非把这些目录当作缺失的业务文件。
 
 <details>
-<summary>展开完整目录树：621个文件</summary>
+<summary>展开完整目录树：622个文件</summary>
 
 ```text
 .
@@ -660,7 +660,8 @@ flowchart TD
 │   │   │   │               ├── V021__evidence_retry_fairness.sql
 │   │   │   │               ├── V022__private_models_and_cny_wallets.sql
 │   │   │   │               ├── V023__single_cny_billing.sql
-│   │   │   │               └── V024__sdk_push_runs.sql
+│   │   │   │               ├── V024__sdk_push_runs.sql
+│   │   │   │               └── V025__sdk_account_projects.sql
 │   │   │   └── test/
 │   │   │       └── java/
 │   │   │           └── io/
@@ -1641,6 +1642,7 @@ flowchart TD
 | [`platform/infrastructure/src/main/resources/db/migration/V022__private_models_and_cny_wallets.sql`](../platform/infrastructure/src/main/resources/db/migration/V022__private_models_and_cny_wallets.sql) | 新增人民币钱包单位、私有模型归属及计费模式，支持零平台扣费的模型调用。 |
 | [`platform/infrastructure/src/main/resources/db/migration/V023__single_cny_billing.sql`](../platform/infrastructure/src/main/resources/db/migration/V023__single_cny_billing.sql) | 统一人民币微元计价，删除钱包单位列和历史模型模式，不改变余额及不可变账目数值。 |
 | [`platform/infrastructure/src/main/resources/db/migration/V024__sdk_push_runs.sql`](../platform/infrastructure/src/main/resources/db/migration/V024__sdk_push_runs.sql) | 添加 SDK 上报项目、数据集版本绑定和运行授权元数据。 |
+| [`platform/infrastructure/src/main/resources/db/migration/V025__sdk_account_projects.sql`](../platform/infrastructure/src/main/resources/db/migration/V025__sdk_account_projects.sql) | 支持由账号上报自动创建不带上传密钥的项目。 |
 | [`platform/infrastructure/src/test/java/io/agenteval/administration/AuditIT.java`](../platform/infrastructure/src/test/java/io/agenteval/administration/AuditIT.java) | 资源预算、删除状态、审计和工作空间轻量列表的真实组件集成测试。检查`keepsAppendOnlyScopedMetadataWithoutSecretPayloads`等场景。 |
 | [`platform/infrastructure/src/test/java/io/agenteval/administration/OperationsIT.java`](../platform/infrastructure/src/test/java/io/agenteval/administration/OperationsIT.java) | 资源预算、删除状态、审计和工作空间轻量列表的真实组件集成测试。检查`migrationJobCompletesWithoutStartingApplicationAndIsRepeatable`等场景。 |
 | [`platform/infrastructure/src/test/java/io/agenteval/administration/ResourceLimitIT.java`](../platform/infrastructure/src/test/java/io/agenteval/administration/ResourceLimitIT.java) | 资源预算、删除状态、审计和工作空间轻量列表的真实组件集成测试。检查`enforcesConcurrentLimitsAtomically`、`enforcesFiftyOnlineWorkersIncludingOfflineReactivation`、`queuesBeyondTwentyRunningTrialsAndResumesAfterCompletion`等场景。 |
@@ -1839,7 +1841,7 @@ flowchart TD
 | [`web/src/features/admin/ModelTestResult.tsx`](../web/src/features/admin/ModelTestResult.tsx) | 中文模型测试结果卡，展示Token用量和按计费模式解释的费用，原始JSON默认折叠。 |
 | [`web/src/features/admin/ResourceAdminPanel.tsx`](../web/src/features/admin/ResourceAdminPanel.tsx) | 管理员查看并修改指定工作空间资源上限及原因。 |
 | [`web/src/features/administration/AuditPage.tsx`](../web/src/features/administration/AuditPage.tsx) | 本人工作空间动作审计的分页浏览。 |
-| [`web/src/features/agents/SdkProjectsPage.tsx`](../web/src/features/agents/SdkProjectsPage.tsx) | 创建上报项目、一次性显示和轮换密钥、切换自动评测。 |
+| [`web/src/features/agents/SdkProjectsPage.tsx`](../web/src/features/agents/SdkProjectsPage.tsx) | 显示应用上报时自动创建的项目并切换自动评测。 |
 | [`web/src/features/administration/DeletionStatusPage.tsx`](../web/src/features/administration/DeletionStatusPage.tsx) | 异步删除进度、失败重试次数与完成状态。 |
 | [`web/src/features/administration/ResourceUsagePanel.test.tsx`](../web/src/features/administration/ResourceUsagePanel.test.tsx) | 前端回归测试：distinguishes cumulative Python allowance from money and shows shared evidence storage。 |
 | [`web/src/features/administration/ResourceUsagePanel.tsx`](../web/src/features/administration/ResourceUsagePanel.tsx) | 显示个人配额/资源用量和等待原因。 |
