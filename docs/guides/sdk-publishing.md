@@ -1,6 +1,6 @@
 # SDK 发布与依赖引入
 
-Python 使用 PyPI（用户通过 pip 安装），Java 使用 Maven Central（用户通过 Maven/Gradle 引入）。**Python SDK `veyraeval-sdk==0.1.0` 已发布到 PyPI 和 TestPyPI；Java SDK `io.github.1993226871:veyraeval-sdk:0.1.0` 已发布 Maven Central，协议包和父POM也已发布。** 项目仓库、分支推送和 SDK 公开发布是不同操作，均应按各自授权执行。
+Python 使用 PyPI（用户通过 pip 安装），Java 使用 Maven Central（用户通过 Maven/Gradle 引入）。**Python SDK `veyraeval-sdk==0.1.2` 已发布到 PyPI 和 TestPyPI。Java SDK `io.github.1993226871:veyraeval-sdk:0.1.1` 已与协议包和父 POM 一起发布到 Maven Central。** 项目仓库、分支推送和 SDK 公开发布是不同操作，均应按各自授权执行。
 
 2026-10-27 发布的 Python `0.1.0` 来自提交 `4cb1c20c30086d5fac75435c29e2399d5488869e`。[TestPyPI 发布运行](https://github.com/1993226871/veyraeval/actions/runs/40462602375)与[正式 PyPI 发布运行](https://github.com/1993226871/veyraeval/actions/runs/40463092611)均通过环境审批后成功上传。两个站点的文件已重新下载并比对各自 CI 清单的 SHA-256，在全新环境中通过安装、依赖、导入和10份协议资源验证。不同运行会重新构建，两个站点的压缩包哈希不必相同；各自必须匹配对应发布运行的 manifest。
 
@@ -20,10 +20,10 @@ Python `0.1.1` 新增 `EvaluationWorker.from_config(path, handler=...)`：从私
 
 | 项目 | 当前源码标识 | 发布前必须确认 |
 | --- | --- | --- |
-| Python 分发名 | `veyraeval-sdk`，源码版本 `0.1.1` | 已发布并验证；后续版本沿用已配置的 Trusted Publisher，每次上传仍单独审批。Python 导入名仍是 `agent_eval`。 |
-| Java SDK | `io.github.1993226871:veyraeval-sdk:0.1.0` | 已发布并通过全新缓存的独立消费项目验证；后续版本继续单独审批。 |
-| Java 协议 | `io.github.1993226871:veyraeval-protocol:0.1.0` | 已与 SDK 一起发布，消费者自动解析共享 DTO/Jackson 协议依赖。 |
-| Java 父 POM | `io.github.1993226871:veyraeval-platform:0.1.0`，类型 `pom` | 已发布以解析版本/BOM/许可证等继承元数据。没有发布 API、Worker、core 或 infrastructure jar。 |
+| Python 分发名 | `veyraeval-sdk`，源码版本 `0.1.2` | 已发布并验证；后续版本沿用已配置的 Trusted Publisher，每次上传仍单独审批。Python 导入名仍是 `agent_eval`。 |
+| Java SDK | `io.github.1993226871:veyraeval-sdk:0.1.1` | 已发布并通过全新缓存的独立消费项目验证；后续版本继续单独审批。 |
+| Java 协议 | `io.github.1993226871:veyraeval-protocol:0.1.1` | 已与 SDK 一起发布，消费者自动解析共享 DTO/Jackson 协议依赖。 |
+| Java 父 POM | `io.github.1993226871:veyraeval-platform:0.1.1`，类型 `pom` | 已发布以解析版本/BOM/许可证等继承元数据。没有发布 API、Worker、core 或 infrastructure jar。 |
 
 已选定 `io.github.1993226871` 为 Maven groupId，并同步父 POM、所有模块父引用、内部依赖和公开接入文档；维护者已确认该 namespace 为 Verified。品牌及分发包统一为 VeyraEval；Python 导入名 `agent_eval`、Java 包名 `io.agenteval.*` 和平台接入环境变量保持兼容，不随分发坐标更名。
 
@@ -61,7 +61,7 @@ Python 默认先构建 sdist，再从 sdist构建 wheel，验证源码分发包�
 Python SDK 安装（选择注册表中已发布的对应版本）：
 
 ```bash
-python -m pip install veyraeval-sdk==0.1.1
+python -m pip install veyraeval-sdk==0.1.2
 ```
 
 ```python
@@ -86,7 +86,7 @@ PyPI 与 TestPyPI 使用独立账号和项目权限，分别注册并配置双�
 | Workflow | `python-sdk-release.yml`（只填文件名） |
 | Environment | TestPyPI 填 `testpypi`，PyPI 填 `pypi` |
 
-当前 `veyraeval-sdk` 在 PyPI 和 TestPyPI 均已有本项目的 `0.1.0` 版本。后续版本应使用项目管理页的 Trusted Publisher；新项目的 Pending Publisher 不会预留名称。
+当前 `veyraeval-sdk` 在 PyPI 和 TestPyPI 均已发布本项目的 `0.1.2` 版本。后续版本应使用项目管理页的 Trusted Publisher；新项目的 Pending Publisher 不会预留名称。
 
 已存在的 PyPI 账号无需重新注册。将 GitHub 关联到 PyPI 账号不等于为此仓库创建了 Trusted Publisher；需要在 [PyPI Publishing](https://pypi.org/manage/account/publishing/) 中，按上表注册本项目的 Pending Publisher（已有本人项目则进入项目管理配置）。TestPyPI 账号及 Publisher 需要在测试站点单独配置。
 
@@ -126,12 +126,12 @@ PyPI 与 TestPyPI 均发布可公开下载的文件。测试上传也需要审�
 <dependency>
   <groupId>io.github.1993226871</groupId>
   <artifactId>veyraeval-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("io.github.1993226871:veyraeval-sdk:0.1.0")
+implementation("io.github.1993226871:veyraeval-sdk:0.1.1")
 ```
 
 用户可按[Java接入](java-sdk.md)直接从 Maven Central 引入依赖，或按[Python接入](python-sdk.md)直接从 PyPI 安装，无需本地构建SDK。贡献者仍可使用源码构建方式开发。

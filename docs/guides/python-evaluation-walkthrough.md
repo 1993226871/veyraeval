@@ -7,7 +7,7 @@
 
 本教程来自一次已跑通的完整使用流程。你将用同一组订单任务评测两个 Agent，看到“工具调用正确，但最终答案错误”的差异，并定位错误发生在哪一步。
 
-示例代码位于 [examples/python-evaluation-demo](../../examples/python-evaluation-demo/README.md)。它是独立的用户 Agent 项目，通过正式 PyPI 的 `veyraeval-sdk==0.1.1` 接入平台；平台端无需知道你的 Agent 内部实现。
+示例代码位于 [examples/python-evaluation-demo](../../examples/python-evaluation-demo/README.md)。它是独立的用户 Agent 项目，通过正式 PyPI 的 `veyraeval-sdk==0.1.2` 接入平台；平台端无需知道你的 Agent 内部实现。
 
 ## 1. 准备自己的平台账号
 

@@ -2,18 +2,18 @@
 
 ## 应用端账号上报
 
-Java 主动上报使用仓库源码中的 `PushClient.login(URI, username, password)`。调用 `startRun` 时把项目名作为第一个参数，随后用 `runCase` 和 `submit` 执行并上报。平台端步骤见[应用端上报指南](tasks-and-rule-sets.md)。
+Java SDK `0.1.1` 的主动上报使用 `PushClient.login(URI, username, password)`。调用 `startRun` 时把项目名作为第一个参数，随后用 `runCase` 和 `submit` 执行并上报。平台端步骤见[应用端上报指南](tasks-and-rule-sets.md)。
 
 以下章节适用于已发布 SDK 的 Worker 接口。
 
 
-需要 JDK 21。SDK `0.1.0` 已发布 Maven Central，在自己的 Agent 项目中添加以下依赖即可，无需下载平台仓库或执行本地 `mvn install`。
+需要 JDK 21。SDK `0.1.1` 已发布 Maven Central，在自己的 Agent 项目中添加以下依赖即可，无需下载平台仓库或执行本地 `mvn install`。
 
 ```xml
 <dependency>
   <groupId>io.github.1993226871</groupId>
   <artifactId>veyraeval-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
@@ -21,7 +21,7 @@ Gradle Kotlin DSL：
 
 ```kotlin
 repositories { mavenCentral() }
-dependencies { implementation("io.github.1993226871:veyraeval-sdk:0.1.0") }
+dependencies { implementation("io.github.1993226871:veyraeval-sdk:0.1.1") }
 ```
 
 在平台注册 Agent 并创建一次性凭证，将 `AGENT_EVAL_URL`、`AGENT_EVAL_AGENT_ID`、`AGENT_EVAL_API_KEY`、`AGENT_EVAL_AGENT_VERSION` 和 `AGENT_EVAL_SPOOL` 注入自己的进程。远程地址必须为 HTTPS；开发 CA 需要导入专用 Java truststore，并通过 `javax.net.ssl.trustStore` 指定。不要关闭 TLS 校验。

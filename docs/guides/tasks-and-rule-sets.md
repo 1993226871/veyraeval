@@ -38,10 +38,10 @@
 
 先在「评分规则集 → 从平台示例开始」点击「复制规则评分示例」，打开已发布的 `v1` 并复制版本 ID。这个示例使用三道本地订单任务和确定性评分规则。
 
-在 Windows 的 PowerShell 中从仓库根目录运行：
+在 Windows 的 PowerShell 中从仓库根目录运行。订单示例会从 PyPI 安装 Python SDK `0.1.2`。
 
 ```powershell
-python -m pip install -e ./sdks/python -e ./examples/python-evaluation-demo
+python -m pip install -e ./examples/python-evaluation-demo
 $email = "替换成你的平台邮箱"
 $suite = "替换成刚复制的评分规则版本 ID"
 python -m order_agent.push_demo --url "https://localhost:8443" --username $email --project "订单助手评测" --suite $suite --variant correct --ca ".tools/local/tls/server.crt"
@@ -51,7 +51,7 @@ python -m order_agent.push_demo --url "https://localhost:8443" --username $email
 
 如需观察趋势，再使用同样的项目名和规则版本，将 `--variant correct` 换成 `--variant buggy`。脚本会上报同一 Agent 的 v1，使用同一 namespace 和题库版本。
 
-在自己的应用中可以这样接入：
+在自己的应用环境运行 `python -m pip install veyraeval-sdk==0.1.2`，再把下例的 `order_agent(...)` 替换为你的 Agent 调用。
 
 ```python
 from getpass import getpass
@@ -77,7 +77,7 @@ with PushClient.login("https://eval.example.com", "user@example.com", getpass("�
     report_id = run.submit()
 ```
 
-已有的 `@observe("tool")` 和 `span(...)` 会把内部调用收集到当前任务轨迹。Java SDK 使用 `PushClient.login` 登录，然后调用 `startRun`（第一个参数为项目名）、`runCase` 和 `submit`，可继续用 `Telemetry.tool` 和 `Telemetry.span` 打点。
+已有的 `@observe("tool")` 和 `span(...)` 会把内部调用收集到当前任务轨迹。Java SDK `0.1.1` 使用 `PushClient.login` 登录，然后调用 `startRun`（第一个参数为项目名）、`runCase` 和 `submit`，可继续用 `Telemetry.tool` 和 `Telemetry.span` 打点。
 
 - `namespace` 用于在项目内归类。应用指定 Agent 名称、版本、运行显示名和任务集版本。每道题使用稳定、唯一的 `case_id`。同一项目、namespace 和任务集版本下，题目、输入或参考答案改动后使用新版本。
 - 一轮提交包含已执行完的任务与内联轨迹，最多 1000 道题、2000 个轨迹事件和 8 MiB 请求。大批评测按应用侧约定拆分并标明分组。评分需要的输入和输出应在上报前按业务规则脱敏。

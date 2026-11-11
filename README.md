@@ -25,7 +25,7 @@
 </div>
 
 > [!IMPORTANT]
-> 源码预览版 `0.1.0`：双语言SDK、自建证据、RULE/LLM/PYTHON评测、累计额度/对账、私人工作台、报告/对比、重评、删除清理、资源预算与审计均已实现。HTTPS Compose、双SDK三类评测、真实runsc隔离、浏览器完整流程和备份恢复已通过验收。生产执行节点需重新验收，真实付费模型准确率与高可用部署不在本次验证范围。参阅[快速开始](docs/guides/quickstart.md)、[验收记录](docs/development/acceptance.md)及[项目说明](docs/project-guide.md)。
+> 平台源码版 `0.1.1`：双语言SDK、自建证据、RULE/LLM/PYTHON评测、累计额度/对账、私人工作台、报告/对比、重评、删除清理、资源预算与审计均已实现。HTTPS Compose、双SDK三类评测、真实runsc隔离、浏览器完整流程和备份恢复已通过验收。生产执行节点需重新验收，真实付费模型准确率与高可用部署不在本次验证范围。参阅[快速开始](docs/guides/quickstart.md)、[验收记录](docs/development/acceptance.md)及[项目说明](docs/project-guide.md)。
 
 <a id="overview"></a>
 
@@ -87,14 +87,14 @@ flowchart LR
 <a id="sdk-preview"></a>
 ## SDK integration
 
-Python 和 Java SDK 源码提供主动上报及轨迹采集。已发布到 PyPI 和 Maven Central 的版本提供 Worker 接入。
+Python SDK `0.1.2` 和 Java SDK `0.1.1` 均可从公开仓库安装。应用通过 `PushClient.login` 登录平台，指定项目名，首次成功上报后平台自动创建项目。 [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.2/) · [Maven Central](https://central.sonatype.com/artifact/io.github.1993226871/veyraeval-sdk/0.1.1)
 
-新上报 API 的接入步骤及可运行订单示例见[应用主动上报指南](docs/guides/tasks-and-rule-sets.md)。以下示例记录已发布 SDK 的 Worker API。
+在平台发布评分规则并复制版本 ID，再按[应用主动上报指南](docs/guides/tasks-and-rule-sets.md)运行订单示例。以下代码演示已有 Worker 项目如何从平台领取任务。
 
 ### Python
 
 ```python
-# python -m pip install veyraeval-sdk==0.1.1
+# python -m pip install veyraeval-sdk==0.1.2
 from threading import Event
 from agent_eval import AgentResult, EvaluationWorker, observe
 
@@ -121,7 +121,7 @@ finally:
 <dependency>
   <groupId>io.github.1993226871</groupId>
   <artifactId>veyraeval-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
@@ -146,12 +146,12 @@ try (var worker = EvaluationWorker.fromEnvironment()) {
 | Platform | Java 21 · Spring Boot 3 · Maven |
 | Web | React · TypeScript · Vite |
 | Data | PostgreSQL · Redis · S3-compatible storage |
-| Agent integration | Java SDK · Python SDK · HTTPS long polling |
+| Agent integration | Java SDK · Python SDK · HTTPS 主动上报与 Worker 长轮询 |
 | Custom evaluators | Python · 独立强化隔离 Runner |
 | Deployment | Linux · Docker Compose |
 | Engineering | TDD · 共享协议契约 · 租户与额度并发测试 |
 
-Docker Compose 组织服务，Python 代码执行使用独立Linux/runsc边界。依赖版本、lockfile与实际取得的镜像digest已锁定；Python SDK `0.1.0` 已发布 PyPI，Java SDK `0.1.0` 已发布 Maven Central，并通过独立环境安装/编译验证。
+Docker Compose 组织服务，Python 代码执行使用独立Linux/runsc边界。依赖版本、lockfile与实际取得的镜像digest已锁定。
 
 <a id="documentation"></a>
 ## Documentation

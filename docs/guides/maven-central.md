@@ -1,6 +1,8 @@
 # Java SDK：签名与 Maven Central 发布
 
-Java SDK `0.1.0` 已发布 Maven Central，可直接通过 Maven/Gradle 引入；命名空间为已验证的 `io.github.1993226871`。
+Java SDK `0.1.1` 已发布到 Maven Central，可通过 Maven 或 Gradle 引入。命名空间为 `io.github.1993226871`。 [Maven Central](https://central.sonatype.com/artifact/io.github.1993226871/veyraeval-sdk/0.1.1)
+
+`0.1.1` 来自提交 `f1e9b42`，对应 Portal 部署 `6f4b3a39-25c1-4ce7-b5de-b695e0db27d5`。从 Central 下载的 9 个 POM/JAR 和 9 份签名均与发布包一致。全新 Maven 缓存验证通过，独立 Java 21 项目可使用 `PushClient` 和共享协议。 [发布运行](https://github.com/1993226871/veyraeval/actions/runs/42850072986)
 
 2026-10-27，[发布运行](https://github.com/1993226871/veyraeval/actions/runs/40474230908)将提交 `04058c37f61baa8f01fdd1f80a15314790ae1a53` 的签名包以 USER_MANAGED 提交 Portal，通过 VALIDATED 校验，部署 ID 为 `723fb6e8-5444-4715-a677-d78cedfaec32`。维护者在 Portal 执行正式发布后，已从公共仓库下载9个 POM/jar 和9份签名，逐一与该运行的 bundle 比对一致。独立项目使用全新 Maven 缓存，仅声明 SDK 依赖，成功从公共 Central 解析 SDK、protocol、父POM，编译并运行 `AgentResult`/`ProtocolCodec` 示例。本次验收覆盖公共依赖解析、编译和基础 API 运行；具体Agent的实际业务接入按其任务集验收。
 
@@ -10,9 +12,9 @@ Java SDK `0.1.0` 已发布 Maven Central，可直接通过 Maven/Gradle 引入�
 
 | 坐标 | 发布文件 |
 | --- | --- |
-| `io.github.1993226871:veyraeval-platform:0.1.0` | 父 POM |
-| `io.github.1993226871:veyraeval-protocol:0.1.0` | POM、binary、sources、Javadoc |
-| `io.github.1993226871:veyraeval-sdk:0.1.0` | POM、binary、sources、Javadoc |
+| `io.github.1993226871:veyraeval-platform:0.1.1` | 父 POM |
+| `io.github.1993226871:veyraeval-protocol:0.1.1` | POM、binary、sources、Javadoc |
+| `io.github.1993226871:veyraeval-sdk:0.1.1` | POM、binary、sources、Javadoc |
 
 总计9个 POM/jar，每个文件都带 PGP 签名和校验和。不发布 API、Worker、core、infrastructure 或示例组件。
 
@@ -120,7 +122,7 @@ Portal 的 VALIDATED 表示校验通过，**还未正式发布**。核对 deploy
 <dependency>
   <groupId>io.github.1993226871</groupId>
   <artifactId>veyraeval-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 

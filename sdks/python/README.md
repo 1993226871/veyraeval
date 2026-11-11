@@ -7,8 +7,12 @@ Connect your own Agent to private evaluations. Your Agent runs in your environme
 Python 3.11 or newer. Install the published SDK from PyPI:
 
 ```bash
-python -m pip install veyraeval-sdk==0.1.1
+python -m pip install veyraeval-sdk==0.1.2
 ```
+
+## Push runs from your application
+
+Use `PushClient.login` with your platform account, then pass a project name to `start_run`. The platform creates the project on the first successful submission. See the [push integration guide](https://github.com/1993226871/veyraeval/blob/main/docs/guides/tasks-and-rule-sets.md) for a runnable order-agent example.
 
 ## Connect with a configuration file (0.1.1+)
 
@@ -104,7 +108,7 @@ Schemas in `src/agent_eval/schemas` are generated copies of `contracts/schemas`;
 
 ## Registry publication
 
-Version `0.1.1` adds configuration-file connection and explicit development CA support. Check the registry version list for publication status. The first release, `0.1.0`, is available on [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.0/) and [TestPyPI](https://test.pypi.org/project/veyraeval-sdk/0.1.0/). The Python import name remains `agent_eval`. Registry downloads, artifact SHA-256, dependencies, imports and packaged schemas have been verified in fresh environments. See the [publishing guide](https://github.com/1993226871/veyraeval/blob/main/docs/guides/sdk-publishing.md) for future releases. Contributors can still install from this repository with `python -m pip install ./sdks/python`. The Java SDK `0.1.0` is also published to Maven Central.
+Version `0.1.2` is available on [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.2/) and [TestPyPI](https://test.pypi.org/project/veyraeval-sdk/0.1.2/). Version `0.1.1` introduced configuration-file connection and explicit development CA support. The first release, `0.1.0`, is available on [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.0/) and [TestPyPI](https://test.pypi.org/project/veyraeval-sdk/0.1.0/). The Python import name remains `agent_eval`. Registry downloads, artifact SHA-256, dependencies, imports and packaged schemas have been verified in fresh environments. See the [publishing guide](https://github.com/1993226871/veyraeval/blob/main/docs/guides/sdk-publishing.md) for future releases. Contributors can still install from this repository with `python -m pip install ./sdks/python`. The Java SDK `0.1.1` is also published to Maven Central.
 
 ## License
 

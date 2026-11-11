@@ -2,20 +2,20 @@
 
 ## 应用端账号上报
 
-Python 主动上报使用仓库源码中的 `PushClient.login`，由应用指定项目名，首次成功提交后自动创建项目。完整订单示例见[应用端上报指南](tasks-and-rule-sets.md)。
+Python SDK `0.1.2` 的主动上报使用 `PushClient.login`，由应用指定项目名，首次成功提交后自动创建项目。完整订单示例见[应用端上报指南](tasks-and-rule-sets.md)。
 
 以下章节适用于已发布 SDK 的 Worker 接口。
 
 
 第一次使用可先跟随 [完整 Python 评测示例](python-evaluation-walkthrough.md)：从安装 SDK 到两个 Agent 的对比报告，含独立项目、规则配置和工具轨迹分析。
 
-需要 Python 3.11 或更高版本。SDK `0.1.0` 已发布到 [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.0/)，可直接安装，无需下载仓库。下面的订单示例文件仍位于仓库的 `examples/python-order-agent/`；自己的 Agent 项目只需引入 SDK 并按接入示例注册处理函数。
+需要 Python 3.11 或更高版本。SDK `0.1.2` 已发布到 [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.2/)，可直接安装，无需下载仓库。下面的订单示例文件仍位于仓库的 `examples/python-order-agent/`；自己的 Agent 项目只需引入 SDK 并按接入示例注册处理函数。
 
 ## 配置文件接入（0.1.1 起）
 
 推荐在“Agent 接入”注册 Agent 后创建接入凭证，点击“复制配置”，保存到自己 Agent 项目的 `agent-eval.local.json`。任务集和实验可以重复使用同一 Agent，无需每次创建任务都生成密钥。
 
-此接口从 Python SDK `0.1.1` 起提供；`0.1.0` 不支持。请在自己的 Agent Python 环境执行 `python -m pip install --upgrade veyraeval-sdk==0.1.1`。开发时也可在平台源码根目录执行 `python -m pip install ./sdks/python`。配置文件示例：
+此接口从 Python SDK `0.1.1` 起提供。请在自己的 Agent Python 环境执行 `python -m pip install --upgrade veyraeval-sdk==0.1.2`。开发时也可在平台源码根目录执行 `python -m pip install ./sdks/python`。配置文件示例：
 
 ```json
 {
@@ -60,10 +60,10 @@ python examples/python-order-agent/main.py --config "C:/my-agent/agent-eval.loca
 
 可选 `spool_path` 指定持久暂存文件，默认 `.agent-eval/spool.sqlite`；`ca_cert` 与 `spool_path` 的相对路径均以配置文件所在目录为基准。多个 Worker 进程应使用各自独立的 spool。修改配置后重启 Worker 生效。请把 `agent-eval.local.json` 和 `.agent-eval/` 加入自己项目的 `.gitignore`，勿提交实际密钥。
 
-## 环境变量接入（已发布 0.1.0 可用）
+## Worker 环境变量接入
 
 ```bash
-python -m pip install veyraeval-sdk==0.1.1
+python -m pip install veyraeval-sdk==0.1.2
 export AGENT_EVAL_URL=https://your-platform.example
 export AGENT_EVAL_AGENT_ID=<平台注册的Agent UUID>
 export AGENT_EVAL_API_KEY=<本次创建的接入密钥>
