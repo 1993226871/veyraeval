@@ -936,6 +936,8 @@ flowchart TD
 │   │   │       ├── CaseRecovery.tsx
 │   │   │       ├── ComparisonView.test.tsx
 │   │   │       ├── ComparisonView.tsx
+│   │   │       ├── EvaluationDashboard.test.tsx
+│   │   │       ├── EvaluationDashboard.tsx
 │   │   │       ├── ExperimentReport.test.tsx
 │   │   │       ├── ExperimentReport.tsx
 │   │   │       ├── HumanReviewPanel.tsx
@@ -1878,7 +1880,9 @@ flowchart TD
 | [`web/src/features/reports/CaseRecovery.tsx`](../web/src/features/reports/CaseRecovery.tsx) | 从冻结任务快照下载可回归的 JSONL 样例并保留来源。 |
 | [`web/src/features/reports/ComparisonView.test.tsx`](../web/src/features/reports/ComparisonView.test.tsx) | 验证不同任务集版本不按序号配对，也不请求逐任务列表。 |
 | [`web/src/features/reports/TaskComparison.test.tsx`](../web/src/features/reports/TaskComparison.test.tsx) | 验证按任务及执行次数配对、分页缺项不误报退步，以及不可比配置不判定改善。 |
-| [`web/src/features/reports/ScoreTrend.tsx`](../web/src/features/reports/ScoreTrend.tsx) | 报告中的结果质量趋势，按现有服务端可比性检查筛选历史分数。 |
+| [`web/src/features/reports/EvaluationDashboard.tsx`](../web/src/features/reports/EvaluationDashboard.tsx) | 评测看板，按项目和配置筛选历史运行、切换趋势并发起两轮对比。 |
+| [`web/src/features/reports/EvaluationDashboard.test.tsx`](../web/src/features/reports/EvaluationDashboard.test.tsx) | 验证筛选会限制趋势和对比的实验范围。 |
+| [`web/src/features/reports/ScoreTrend.tsx`](../web/src/features/reports/ScoreTrend.tsx) | 看板中的结果质量趋势，按服务端可比性检查筛选历史分数。 |
 | [`web/src/features/reports/TaskComparison.tsx`](../web/src/features/reports/TaskComparison.tsx) | 逐任务配对、改善或退步展示、评分解释摘要及按需并排展开双方答案和证据。 |
 | [`web/src/features/reports/TrialEvidence.test.tsx`](../web/src/features/reports/TrialEvidence.test.tsx) | 验证固定任务、参考答案、实际回答、失败样例入口及评分引用定位执行步骤。 |
 | [`web/src/features/reports/diagnostics.test.ts`](../web/src/features/reports/diagnostics.test.ts) | 验证执行异常、评分异常、证据不足、可选项失败与质量结论分离，以及任务配对和样例复制语义。 |

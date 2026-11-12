@@ -980,6 +980,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/reports/comparison/trials": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["getComparisonTrialPages"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/reports/experiments/{id}/trials": {
     parameters: {
       query?: never;
@@ -1880,6 +1896,10 @@ export interface components {
     TrialReportPage: {
       items: components["schemas"]["TrialReport"][];
       next_cursor: string | null;
+    };
+    ComparisonTrialPages: {
+      left: components["schemas"]["TrialReportPage"];
+      right: components["schemas"]["TrialReportPage"];
     };
     Rate: {
       numerator: number;
@@ -4411,6 +4431,39 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ReportExport"];
+        };
+      };
+      400: components["responses"]["Rejected"];
+      401: components["responses"]["Rejected"];
+      403: components["responses"]["Rejected"];
+      404: components["responses"]["Rejected"];
+      409: components["responses"]["Rejected"];
+      413: components["responses"]["Rejected"];
+      429: components["responses"]["Rejected"];
+      503: components["responses"]["Rejected"];
+    };
+  };
+  getComparisonTrialPages: {
+    parameters: {
+      query: {
+        left: string;
+        right: string;
+        leftCursor?: string;
+        rightCursor?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Success. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ComparisonTrialPages"];
         };
       };
       400: components["responses"]["Rejected"];

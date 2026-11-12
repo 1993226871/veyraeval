@@ -54,15 +54,19 @@ function setup(comparable = true) {
             ],
           },
         };
-      if (url.pathname.endsWith("/left/trials"))
-        body = {
-          items: [row("L0", 0, "FAIL"), row("L1", 1, "PASS")],
-          next_cursor: null,
-        };
-      if (url.pathname.endsWith("/right/trials"))
-        body = url.searchParams.has("cursor")
-          ? { items: [row("R1", 1, "FAIL")], next_cursor: null }
-          : { items: [row("R0", 0, "PASS")], next_cursor: "next" };
+      if (url.pathname.endsWith("/comparison/trials"))
+        body = url.searchParams.has("rightCursor")
+          ? {
+              left: { items: [], next_cursor: null },
+              right: { items: [row("R1", 1, "FAIL")], next_cursor: null },
+            }
+          : {
+              left: {
+                items: [row("L0", 0, "FAIL"), row("L1", 1, "PASS")],
+                next_cursor: null,
+              },
+              right: { items: [row("R0", 0, "PASS")], next_cursor: "next" },
+            };
       return new Response(JSON.stringify(body), {
         headers: { "Content-Type": "application/json" },
       });
@@ -97,11 +101,17 @@ it("shows readable task pairs, diagnoses failures and loads remaining attempts w
   expect(screen.queryByText("退步")).not.toBeInTheDocument();
   expect(screen.getByText("金额与参考答案不同")).toBeVisible();
   expect(screen.getByText("旧订单助手 · v1")).toBeVisible();
-  await user.click(screen.getByRole("button", { name: "加载更多右侧任务" }));
+  await user.click(screen.getByRole("button", { name: "加载更多任务" }));
   expect(await screen.findByText("退步")).toBeVisible();
   const rows = screen.getAllByRole("row");
   expect(within(rows[2]!).getByText("查不存在的订单")).toBeVisible();
-  expect(paths.some((path) => path.includes("cursor=next"))).toBe(true);
+  expect(paths.filter((path) => path.includes("/comparison/trials"))).toEqual([
+    "/api/v1/reports/comparison/trials?left=left&right=right",
+    "/api/v1/reports/comparison/trials?left=left&right=right&rightCursor=next",
+  ]);
+  expect(paths.some((path) => /\/experiments\/[^/]+\/trials/.test(path))).toBe(
+    false,
+  );
   expect(paths.some((path) => path.includes("/evidence/"))).toBe(false);
 });
 it("never claims improvement when the comparison configuration is incompatible", async () => {

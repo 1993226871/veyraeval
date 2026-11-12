@@ -995,3 +995,17 @@ dialog::backdrop {
 .evidence-comparison .trial-evidence {
   padding: 16px;
 }
+
+.dashboard-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 1rem;
+}
+
+.dashboard-filters label {
+  min-width: 0;
+}
+
+.dashboard-filters select {
+  width: 100%;
+}

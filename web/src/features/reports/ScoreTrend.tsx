@@ -1,8 +1,11 @@
+import { useId } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, request } from "../../api/client";
 import type { Schema } from "../../api/types";
 import { ErrorNotice } from "../../components/ui";
+
+import { reportReadRetry, queueReportRead } from "./queries";
 
 type Summary = Schema<"ExperimentSummary">;
 type Report = Schema<"ExperimentReport">;
@@ -16,6 +19,7 @@ export function ScoreTrend({
   report: Report;
   history: Summary[];
 }) {
+  const fillId = useId();
   const runs = history
     .filter(
       (run) =>
@@ -37,12 +41,15 @@ export function ScoreTrend({
         state.data?.reasons.includes("EXECUTION_OR_EVALUATION_PENDING")
           ? 10000
           : false,
+      ...reportReadRetry,
       queryFn: ({ signal }) =>
-        request(
-          api.GET("/api/v1/reports/comparison", {
-            params: { query: { left: current.id, right: run.id } },
-            signal,
-          }),
+        queueReportRead(signal, () =>
+          request(
+            api.GET("/api/v1/reports/comparison", {
+              params: { query: { left: current.id, right: run.id } },
+              signal,
+            }),
+          ),
         ),
     })),
   });
@@ -73,6 +80,28 @@ export function ScoreTrend({
   const x = (index: number) =>
     42 + (index * 516) / Math.max(points.length - 1, 1);
   const y = (score: number) => 16 + 124 * (1 - score);
+  const segments: { x: number; y: number }[][] = [];
+  let segment: { x: number; y: number }[] = [];
+  points.forEach(({ score }, index) => {
+    if (score === null) {
+      segment = [];
+      return;
+    }
+    if (segment.length === 0) segments.push(segment);
+    segment.push({ x: x(index), y: y(score) });
+  });
+  const curves = segments
+    .filter((segment) => segment.length > 1)
+    .map((segment) => {
+      const start = segment[0]!;
+      const end = segment.at(-1)!;
+      const line = segment.slice(1).reduce((path, point, index) => {
+        const previous = segment[index]!;
+        const middle = (previous.x + point.x) / 2;
+        return `${path} C ${middle} ${previous.y}, ${middle} ${point.y}, ${point.x} ${point.y}`;
+      }, `M ${start.x} ${start.y}`);
+      return { line, area: `${line} L ${end.x} ${y(0)} H ${start.x} Z` };
+    });
   return (
     <section className="panel" aria-label="Agent 评分趋势">
       <h2>Agent 评分趋势</h2>
@@ -80,74 +109,79 @@ export function ScoreTrend({
         最近八轮结果质量分，按运行时间排列。历史运行须通过与本轮的可比性检查。
       </p>
       <ErrorNotice error={points.find((point) => point.error)?.error} />
-      {runs.length === 0 ? (
+      {runs.length === 0 && (
         <p>使用相同任务集和评分规则集再运行一次，即可查看变化。</p>
-      ) : (
-        <>
-          <svg
-            viewBox="0 0 600 160"
-            width="100%"
-            height="180"
-            role="img"
-            aria-label="历次结果质量分折线图"
-          >
-            {[0, 0.5, 1].map((tick) => (
-              <g key={tick}>
-                <text x="1" y={y(tick) + 4} fontSize="12" fill="currentColor">
-                  {tick * 100}
-                </text>
-                <line
-                  x1="42"
-                  y1={y(tick)}
-                  x2="558"
-                  y2={y(tick)}
-                  stroke="var(--line)"
-                />
-              </g>
-            ))}
-            {points.map(({ run, score }, index) => {
-              const previous = points[index - 1]?.score;
-              return score === null ? null : (
-                <g key={run.id}>
-                  {previous != null && (
-                    <line
-                      x1={x(index - 1)}
-                      y1={y(previous)}
-                      x2={x(index)}
-                      y2={y(score)}
-                      stroke="var(--teal)"
-                      strokeWidth="2"
-                    />
-                  )}
-                  <circle cx={x(index)} cy={y(score)} r="5" fill="var(--teal)">
-                    <title>
-                      {run.agent_version} · {Math.round(score * 100)} 分
-                    </title>
-                  </circle>
-                </g>
-              );
-            })}
-          </svg>
-          <ul>
-            {points.map(({ run, score, pending, error }) => (
-              <li key={run.id}>
-                <Link to={"/workspace/reports/" + run.id}>
-                  {run.agent_version} ·{" "}
-                  {new Date(run.created_at).toLocaleString("zh-CN")}
-                </Link>
-                {" · "}
-                {score != null
-                  ? `${Math.round(score * 100)} 分`
-                  : pending
-                    ? "正在核对"
-                    : error
-                      ? "载入失败"
-                      : "不可比或暂无分数"}
-              </li>
-            ))}
-          </ul>
-        </>
       )}
+      <>
+        <svg
+          viewBox="0 0 600 160"
+          width="100%"
+          height="180"
+          role="img"
+          aria-label="历次结果质量分平滑面积图"
+        >
+          <defs>
+            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--teal)" stopOpacity="0.32" />
+              <stop offset="100%" stopColor="var(--teal)" stopOpacity="0.06" />
+            </linearGradient>
+          </defs>
+          {[0, 0.5, 1].map((tick) => (
+            <g key={tick}>
+              <text x="1" y={y(tick) + 4} fontSize="12" fill="currentColor">
+                {tick * 100}
+              </text>
+              <line
+                x1="42"
+                y1={y(tick)}
+                x2="558"
+                y2={y(tick)}
+                stroke="var(--line)"
+              />
+            </g>
+          ))}
+          {curves.map(({ line, area }) => (
+            <g key={line}>
+              <path d={area} fill={`url(#${fillId})`} />
+              <path
+                d={line}
+                fill="none"
+                stroke="var(--teal)"
+                strokeWidth="2.5"
+              />
+            </g>
+          ))}
+          {points.map(({ run, score }, index) =>
+            score === null ? null : (
+              <g key={run.id}>
+                <circle cx={x(index)} cy={y(score)} r="5" fill="var(--teal)">
+                  <title>
+                    {run.agent_version} · {Math.round(score * 100)} 分
+                  </title>
+                </circle>
+              </g>
+            ),
+          )}
+        </svg>
+        <ul>
+          {points.map(({ run, score, pending, error }) => (
+            <li key={run.id}>
+              <Link to={"/workspace/reports/" + run.id}>
+                {run.agent_version} ·{" "}
+                {new Date(run.created_at).toLocaleString("zh-CN")}
+              </Link>
+              {" · "}
+              {score != null
+                ? `${Math.round(score * 100)} 分`
+                : pending
+                  ? "正在核对"
+                  : error
+                    ? "载入失败"
+                    : "不可比或暂无分数"}
+            </li>
+          ))}
+        </ul>
+      </>
     </section>
   );
 }

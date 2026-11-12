@@ -15,7 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 @Order(Ordered.LOWEST_PRECEDENCE)
 public final class EvidenceReadAdmissionFilter extends OncePerRequestFilter {
-    private static final Pattern LARGE_READ=Pattern.compile("/api/v1/(?:evidence/snapshots/[^/]+|reports/(?:experiments/[^/]+(?:/(?:export|trials))?|comparison)|catalog|experiments)");
+    private static final Pattern LARGE_READ=Pattern.compile("/api/v1/(?:evidence/snapshots/[^/]+|reports/(?:experiments/[^/]+(?:/(?:export|trials))?|comparison(?:/trials)?)|catalog|experiments)");
     private final Semaphore slots=new Semaphore(2);
     private final ConcurrentHashMap<String,Boolean> users=new ConcurrentHashMap<>();
     @Override protected boolean shouldNotFilter(HttpServletRequest request) { return !request.getMethod().equals("GET") || !LARGE_READ.matcher(request.getRequestURI()).matches(); }

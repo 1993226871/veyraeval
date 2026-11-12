@@ -128,12 +128,20 @@ test("HTTPS app pushes runs, evaluates automatically or manually, compares and d
   await waitScored(second, 1);
   await page.reload();
   await expect(
+    page.getByRole("region", { name: "Agent 评分趋势" }),
+  ).toHaveCount(0);
+  await page.getByRole("link", { name: "评测看板", exact: true }).click();
+  await page
+    .getByLabel("项目", { exact: true })
+    .selectOption({ label: "Browser orders" });
+  await expect(
     page
       .getByRole("region", { name: "Agent 评分趋势" })
       .getByText(/100 分/)
       .last(),
   ).toBeVisible();
-  await page.getByLabel("对比最近 100 次实验").selectOption(first);
+  await page.getByLabel("第一轮").selectOption(first);
+  await page.getByLabel("第二轮").selectOption(second);
   await page
     .getByRole("link", { name: "查看可比性与差异", exact: true })
     .click();

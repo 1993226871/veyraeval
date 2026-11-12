@@ -11,7 +11,7 @@ import {
 import { useWorkspace } from "../auth/AuthProvider";
 import type { Schema } from "../../api/types";
 import { TaskComparison } from "./TaskComparison";
-import { useReportIdentity } from "./queries";
+import { queueReportRead, reportReadRetry, useReportIdentity } from "./queries";
 
 const reasonLabels: Record<string, string> = {
   DATASET_VERSION_MISMATCH: "任务集版本不同",
@@ -34,12 +34,15 @@ export function ComparisonView() {
     queryKey: [workspace_id, "comparison", left, right],
     enabled: !!left && !!right,
     refetchInterval: 10000,
+    ...reportReadRetry,
     queryFn: ({ signal }) =>
-      request(
-        api.GET("/api/v1/reports/comparison", {
-          params: { query: { left, right } },
-          signal,
-        }),
+      queueReportRead(signal, () =>
+        request(
+          api.GET("/api/v1/reports/comparison", {
+            params: { query: { left, right } },
+            signal,
+          }),
+        ),
       ),
   });
   return (
@@ -50,7 +53,7 @@ export function ComparisonView() {
       />
       <ErrorNotice error={comparison.error} />
       {!left || !right ? (
-        <p>请从实验报告选择两次实验。</p>
+        <p>请在评测看板选择两轮实验。</p>
       ) : comparison.isPending ? (
         <Loading />
       ) : (

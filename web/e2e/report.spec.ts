@@ -63,7 +63,9 @@ test("explains real SDK results and exports linked manual reviews", async ({
     path: path.resolve("../.tools/web-report-desktop.png"),
     fullPage: true,
   });
-  await page.getByLabel("对比最近 100 次实验").selectOption(ids[1]!);
+  await page.getByRole("link", { name: "评测看板", exact: true }).click();
+  await page.getByLabel("第一轮").selectOption(ids[0]!);
+  await page.getByLabel("第二轮").selectOption(ids[1]!);
   await page.getByRole("link", { name: "查看可比性与差异" }).click();
   await expect(page.getByText("不能直接比较", { exact: true })).toBeVisible();
   await expect(page.getByText("任务集版本不同", { exact: true })).toBeVisible();

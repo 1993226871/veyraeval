@@ -14,6 +14,7 @@ import { QuotaPage } from "./features/models/QuotaPage";
 import { AdminPage } from "./features/admin/AdminPage";
 import { AuditPage } from "./features/administration/AuditPage";
 import { DeletionStatusPage } from "./features/administration/DeletionStatusPage";
+import { EvaluationDashboard } from "./features/reports/EvaluationDashboard";
 import { ExperimentReport } from "./features/reports/ExperimentReport";
 import { ComparisonView } from "./features/reports/ComparisonView";
 import { ErrorNotice, Loading } from "./components/ui";
@@ -40,6 +41,7 @@ function Layout() {
   const [error, setError] = useState<unknown>();
   const links = [
     ["experiments", "实验"],
+    ["dashboard", "评测看板"],
     ["rule-sets", "评分规则集"],
     ["agents", "SDK 接入"],
     ["quota", "个人额度"],
@@ -105,6 +107,10 @@ export function App() {
         <Route path="/change-password" element={<PasswordPage />} />
         <Route element={<Guard />}>
           <Route path="/workspace/experiments" element={<ExperimentsPage />} />
+          <Route
+            path="/workspace/dashboard"
+            element={<EvaluationDashboard />}
+          />
           <Route path="/workspace/reports/:id" element={<ExperimentReport />} />
           <Route path="/workspace/comparisons" element={<ComparisonView />} />
           <Route

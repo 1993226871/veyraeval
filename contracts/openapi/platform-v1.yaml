@@ -4776,6 +4776,84 @@
         ]
       }
     },
+    "/api/v1/reports/comparison/trials": {
+      "get": {
+        "operationId": "getComparisonTrialPages",
+        "tags": [
+          "reports"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonTrialPages"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "401": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "403": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "404": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "409": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "413": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "429": {
+            "$ref": "#/components/responses/Rejected"
+          },
+          "503": {
+            "$ref": "#/components/responses/Rejected"
+          }
+        },
+        "parameters": [
+          {
+            "name": "left",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "right",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "leftCursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rightCursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/v1/reports/experiments/{id}/trials": {
       "get": {
         "operationId": "getTrialReports",
@@ -8414,6 +8492,22 @@
         "required": [
           "items",
           "next_cursor"
+        ]
+      },
+      "ComparisonTrialPages": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "left": {
+            "$ref": "#/components/schemas/TrialReportPage"
+          },
+          "right": {
+            "$ref": "#/components/schemas/TrialReportPage"
+          }
+        },
+        "required": [
+          "left",
+          "right"
         ]
       },
       "Rate": {

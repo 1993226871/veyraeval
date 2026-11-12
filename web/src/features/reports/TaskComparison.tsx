@@ -1,7 +1,7 @@
 import {
   useReportDataset,
   useReportIdentity,
-  useReportTrials,
+  useComparisonTrials,
 } from "./queries";
 import { useState } from "react";
 import type { Schema } from "../../api/types";
@@ -26,8 +26,7 @@ export function TaskComparison({
   datasetVersionId: string;
   comparable: boolean;
 }) {
-  const left = useReportTrials(leftId),
-    right = useReportTrials(rightId);
+  const trials = useComparisonTrials(leftId, rightId);
   const dataset = useReportDataset(datasetVersionId);
   const leftIdentity = useReportIdentity(leftId),
     rightIdentity = useReportIdentity(rightId);
@@ -36,8 +35,8 @@ export function TaskComparison({
     attempt: number;
   }>();
   const rows = pairTrials(
-    left.data?.pages.flatMap((p) => p.items) ?? [],
-    right.data?.pages.flatMap((p) => p.items) ?? [],
+    trials.data?.pages.flatMap((p) => p.left.items) ?? [],
+    trials.data?.pages.flatMap((p) => p.right.items) ?? [],
   );
   const current = rows.find(
     (row) =>
@@ -63,14 +62,13 @@ export function TaskComparison({
       </p>
       <ErrorNotice
         error={
-          left.error ??
-          right.error ??
+          trials.error ??
           dataset.error ??
           leftIdentity.error ??
           rightIdentity.error
         }
       />
-      {left.isPending || right.isPending ? (
+      {trials.isPending ? (
         <Loading />
       ) : rows.length === 0 ? (
         <p>尚无任务执行记录。</p>
@@ -140,20 +138,12 @@ export function TaskComparison({
         </div>
       )}
       <div className="actions">
-        {left.hasNextPage && (
+        {trials.hasNextPage && (
           <button
-            disabled={left.isFetching}
-            onClick={() => void left.fetchNextPage()}
+            disabled={trials.isFetching}
+            onClick={() => void trials.fetchNextPage()}
           >
-            加载更多左侧任务
-          </button>
-        )}
-        {right.hasNextPage && (
-          <button
-            disabled={right.isFetching}
-            onClick={() => void right.fetchNextPage()}
-          >
-            加载更多右侧任务
+            加载更多任务
           </button>
         )}
       </div>

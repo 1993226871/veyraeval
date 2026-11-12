@@ -19,7 +19,6 @@ import {
 } from "../experiments/presentation";
 import { EstimateNotice } from "../experiments/estimate";
 import { TrialSummary } from "./TaskComparison";
-import { ScoreTrend } from "./ScoreTrend";
 import { useReportDataset, useReportTrials } from "./queries";
 import { objectValue } from "../catalog/validation";
 
@@ -31,7 +30,6 @@ function ExperimentReportPage({ id }: { id: string }) {
   const { workspace_id } = useWorkspace();
   const cache = useQueryClient();
   const [selected, setSelected] = useState<Schema<"TrialReport">>();
-  const [compareId, setCompareId] = useState("");
   const [evaluateOpen, setEvaluateOpen] = useState(false);
   const report = useQuery({
     queryKey: [workspace_id, "report", id],
@@ -50,16 +48,6 @@ function ExperimentReportPage({ id }: { id: string }) {
       request(
         api.GET("/api/v1/experiment-summaries/{id}", {
           params: { path: { id } },
-          signal,
-        }),
-      ),
-  });
-  const others = useQuery({
-    queryKey: [workspace_id, "comparison-options"],
-    queryFn: ({ signal }) =>
-      request(
-        api.GET("/api/v1/experiment-summaries", {
-          params: { query: { limit: 100 } },
           signal,
         }),
       ),
@@ -215,7 +203,6 @@ function ExperimentReportPage({ id }: { id: string }) {
         error={
           report.error ??
           experiment.error ??
-          others.error ??
           trials.error ??
           dataset.error ??
           download.error
@@ -357,45 +344,6 @@ function ExperimentReportPage({ id }: { id: string }) {
                   .join(" · ")}
               </p>
             </details>
-            {experiment.data && others.data && (
-              <ScoreTrend
-                current={experiment.data}
-                report={value}
-                history={others.data}
-              />
-            )}
-            <div className="comparison-picker">
-              <label>
-                对比最近 100 次实验
-                <select
-                  value={compareId}
-                  onChange={(event) => setCompareId(event.target.value)}
-                >
-                  <option value="">选择另一次实验</option>
-                  {others.data
-                    ?.filter((item) => item.id !== id)
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {experimentTitle(item)} ·{" "}
-                        {new Date(item.created_at).toLocaleString("zh-CN")}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              {compareId && (
-                <Link
-                  className="button-link"
-                  to={
-                    "/workspace/comparisons?left=" +
-                    encodeURIComponent(id) +
-                    "&right=" +
-                    encodeURIComponent(compareId)
-                  }
-                >
-                  查看可比性与差异
-                </Link>
-              )}
-            </div>
           </>
         )
       )}

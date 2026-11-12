@@ -49,7 +49,7 @@ test("diagnoses failures, downloads a regression case and compares tasks", async
     }));
   const summary = (side: string) => ({
     id: side,
-    agent_id: "agent",
+    agent_id: "agent-" + side,
     agent_name: "订单助手",
     agent_version: side === "left" ? "v1" : "v2",
     dataset_name: "订单回归测试",
@@ -128,6 +128,17 @@ test("diagnoses failures, downloads a regression case and compares tasks", async
         left_provenance: {},
         right_provenance: {},
       };
+    else if (p === "/reports/comparison/trials")
+      value = {
+        left: {
+          items: trials(url.searchParams.get("left")!),
+          next_cursor: null,
+        },
+        right: {
+          items: trials(url.searchParams.get("right")!),
+          next_cursor: null,
+        },
+      };
     else if (p.match(/^\/reports\/experiments\/[^/]+\/trials$/))
       value = { items: trials(p.split("/")[3]!), next_cursor: null };
     else if (p.startsWith("/reports/experiments/"))
@@ -193,14 +204,25 @@ test("diagnoses failures, downloads a regression case and compares tasks", async
     await route.fulfill({ json: value });
   });
   await page.goto("/workspace/reports/left");
+  await expect(
+    page.getByRole("region", { name: "Agent 评分趋势" }),
+  ).toHaveCount(0);
+  await page.getByRole("link", { name: "评测看板", exact: true }).click();
   const trend = page.getByRole("region", { name: "Agent 评分趋势" });
-  await expect(trend.getByRole("img")).toBeVisible();
+  const chart = trend.getByRole("img", { name: "历次结果质量分平滑面积图" });
+  await expect(chart).toBeVisible();
+  await expect(chart.locator("path[fill^='url']")).toHaveAttribute(
+    "d",
+    / C .+ Z$/,
+  );
+  await expect(chart.locator("path[fill='none']")).toHaveAttribute("d", / C /);
   await expect(trend.getByText(/75 分/).last()).toBeVisible();
   await expect(trend.getByRole("link", { name: /^v2/ })).toHaveAttribute(
     "href",
     "/workspace/reports/right",
   );
 
+  await trend.getByRole("link", { name: /^v1/ }).click();
   await expect(
     page.getByRole("heading", { name: "订单助手 的评测报告" }),
   ).toBeVisible();

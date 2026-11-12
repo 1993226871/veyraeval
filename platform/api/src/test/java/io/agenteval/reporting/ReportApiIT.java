@@ -66,6 +66,15 @@ class ReportApiIT {
             assertThat(get(owner,comparison).statusCode()).isEqualTo(200);
             assertThat(json.readTree(get(owner,comparison).body()).path("directly_comparable").asBoolean()).isTrue();
             assertThat(get(other,comparison).statusCode()).isEqualTo(404);
+            String comparisonTrials="/api/v1/reports/comparison/trials?left="+experiment+"&right="+experiment;
+            var paired=get(owner,comparisonTrials);
+            assertThat(paired.statusCode()).isEqualTo(200);
+            var pairedBody=json.readTree(paired.body());
+            assertThat(pairedBody.at("/left/items")).hasSize(1);
+            assertThat(pairedBody.at("/right/items")).hasSize(1);
+            assertThat(get(anonymous,comparisonTrials).statusCode()).isEqualTo(401);
+            assertThat(get(other,comparisonTrials).statusCode()).isEqualTo(404);
+            assertThat(get(owner,comparisonTrials+"&rightCursor=invalid").statusCode()).isEqualTo(400);
             var exported=get(owner,path+"/export");
             assertThat(exported.statusCode()).isEqualTo(200);
             assertThat(json.readTree(exported.body()).path("reviews")).hasSize(1);

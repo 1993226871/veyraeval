@@ -77,6 +77,7 @@ define('DimensionScore', { score: nullable(number), scored_weight: number, total
 const dimensions = { type: 'object', additionalProperties: ref('DimensionScore') };
 define('TrialReport', { trial_id: uuid, case_index: integer, attempt: integer, execution_status: execution, run_id: nullable(uuid), snapshot_id: nullable(uuid), evaluation_state: text, verdict: text, dimensions, criteria: array(ref('CriterionResult')), reported_duration_ms: nullable(integer), suite_version_id: uuid, evidence_wait_reason: nullable(text) });
 define('TrialReportPage', { items: array(ref('TrialReport')), next_cursor: nullable(text) });
+define('ComparisonTrialPages', { left: ref('TrialReportPage'), right: ref('TrialReportPage') });
 define('Rate', { numerator: integer, denominator: integer, value: nullable(number) });
 define('Efficiency', { observed_durations: integer, p50_duration_ms: nullable(integer), p95_duration_ms: nullable(integer), source: text });
 define('ExperimentReport', { experiment_id: uuid, dataset_version_id: uuid, suite_version_id: uuid, agent_version: text, experiment_status: text, planned_attempts: integer, started_attempts: integer, finished_attempts: integer, determinable_attempts: integer, passed_attempts: integer, failed_attempts: integer, undetermined_attempts: integer, pending_attempts: integer, cancelled_attempts: integer, pass_rate_planned: ref('Rate'), pass_rate_determinable: ref('Rate'), execution_counts: { type: 'object', additionalProperties: integer }, dimensions, efficiency: ref('Efficiency'), evaluation_suite_version_ids: array(uuid) });
@@ -195,6 +196,12 @@ op('post', '/api/v1/results/{resultId}/reviews', 'addHumanReview', object({ scor
 op('get', '/api/v1/reports/experiments/{id}', 'getExperimentReport', null, ref('ExperimentReport'));
 op('get', '/api/v1/reports/comparison', 'compareExperiments', null, ref('ComparisonReport'), 200, { query: [{ name: 'left', in: 'query', required: true, schema: uuid }, { name: 'right', in: 'query', required: true, schema: uuid }] });
 op('get', '/api/v1/reports/experiments/{id}/export', 'exportReport', null, ref('ReportExport'));
+op('get', '/api/v1/reports/comparison/trials', 'getComparisonTrialPages', null, ref('ComparisonTrialPages'), 200, { query: [
+  { name: 'left', in: 'query', required: true, schema: uuid },
+  { name: 'right', in: 'query', required: true, schema: uuid },
+  { name: 'leftCursor', in: 'query', schema: text },
+  { name: 'rightCursor', in: 'query', schema: text },
+] });
 op('get', '/api/v1/reports/experiments/{id}/trials', 'getTrialReports', null, ref('TrialReportPage'), 200, { query: cursor });
 op('get', '/api/v1/traces/{id}', 'getTrace', null, ref('TracePage'), 200, { query: cursor });
 op('get', '/api/v1/artifacts/{id}/download', 'downloadArtifact', null, object({ url: { type: 'string', format: 'uri' } }));
