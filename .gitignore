@@ -35,6 +35,7 @@ data/
 artifacts/
 .spool/
 .tools/
+/AGENTS.md
 .superpowers/
 docs/superpowers/
 docs/development/implementation-decisions.md
