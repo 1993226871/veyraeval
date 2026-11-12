@@ -144,7 +144,7 @@ flowchart TD
 | 整个平台 | `e2e/`及Linux sandbox acceptance | HTTPS、双SDK三类评分、浏览器、恢复、容量和未知状态。 |
 | SDK分发 | [发布指南](guides/sdk-publishing.md)、[Java签名发布](guides/maven-central.md) | Python已发布PyPI、Java已发布Maven Central；均已通过独立环境安装/编译验证。 |
 
-规则：新增行为先写失败测试，修复后运行有意义的回归；不能把控制层通过写成runsc隔离通过。当前Git规则见[Agent.md](../Agent.md)：每次push必须先得到用户本次同意，commit说明使用中文。
+规则：新增行为先写失败测试，修复后运行有意义的回归；不能把控制层通过写成runsc隔离通过。当前Git规则见[AGENTS.md](../AGENTS.md)：每次push必须先得到用户本次同意，commit说明使用中文。
 
 ## 6. 完整目录树
 
@@ -965,7 +965,6 @@ flowchart TD
 ├── .dockerignore
 ├── .gitignore
 ├── AGENTS.md
-├── Agent.md
 ├── LICENSE
 ├── README.md
 ├── mvnw
@@ -1192,8 +1191,7 @@ flowchart TD
 | --- | --- |
 | [`.dockerignore`](../.dockerignore) | 限制平台/Web Docker构建上下文，只允许所需编译产物及部署文件进入镜像。 |
 | [`.gitignore`](../.gitignore) | 排除凭证、本地工具、构建产物、设计草稿和内部实施过程；不清理旧Git历史。 |
-| [`AGENTS.md`](../AGENTS.md) | 自动发现入口：要求读取Agent.md，并直接声明Git授权及中文提交约束。 |
-| [`Agent.md`](../Agent.md) | 项目级Agent协作约束、结构及验证方法；每次push须先征得本次明确同意，commit说明用中文。 |
+| [`AGENTS.md`](../AGENTS.md) | 项目协作约束、目录结构和验证方法。每次推送须取得本次明确同意，提交说明使用中文。 |
 | [`LICENSE`](../LICENSE) | Apache License 2.0官方完整文本，适用于本项目代码；第三方依赖各遵守其许可证。 |
 | [`README.md`](../README.md) | 项目首页：能力、接入示例、当前状态、文档入口和Apache许可证。 |
 | [`mvnw`](../mvnw) | Linux/macOS Maven Wrapper入口，用项目固定的Maven构建Java模块。 |
