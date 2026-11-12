@@ -1,22 +1,22 @@
 # Java SDK：签名与 Maven Central 发布
 
-Java SDK `0.1.1` 已发布到 Maven Central，可通过 Maven 或 Gradle 引入。命名空间为 `io.github.1993226871`。 [Maven Central](https://central.sonatype.com/artifact/io.github.1993226871/veyraeval-sdk/0.1.1)
+新命名空间 `io.github.nijikamori` 的 Java SDK `0.1.1` 已发布到 Maven Central。 [Maven Central](https://central.sonatype.com/artifact/io.github.nijikamori/veyraeval-sdk/0.1.1)
 
-`0.1.1` 来自提交 `f1e9b42`，对应 Portal 部署 `6f4b3a39-25c1-4ce7-b5de-b695e0db27d5`。从 Central 下载的 9 个 POM/JAR 和 9 份签名均与发布包一致。全新 Maven 缓存验证通过，独立 Java 21 项目可使用 `PushClient` 和共享协议。 [发布运行](https://github.com/nijikamori/veyraeval/actions/runs/42850072986)
+原命名空间的 `0.1.1` 来自提交 `f1e9b42`，对应 Portal 部署 `6f4b3a39-25c1-4ce7-b5de-b695e0db27d5`。从 Central 下载的 9 个 POM/JAR 和 9 份签名均与发布包一致。全新 Maven 缓存验证通过，独立 Java 21 项目可使用 `PushClient` 和共享协议。 [发布运行](https://github.com/nijikamori/veyraeval/actions/runs/42850072986)
 
 2026-10-27，[发布运行](https://github.com/nijikamori/veyraeval/actions/runs/40474230908)将提交 `04058c37f61baa8f01fdd1f80a15314790ae1a53` 的签名包以 USER_MANAGED 提交 Portal，通过 VALIDATED 校验，部署 ID 为 `723fb6e8-5444-4715-a677-d78cedfaec32`。维护者在 Portal 执行正式发布后，已从公共仓库下载9个 POM/jar 和9份签名，逐一与该运行的 bundle 比对一致。独立项目使用全新 Maven 缓存，仅声明 SDK 依赖，成功从公共 Central 解析 SDK、protocol、父POM，编译并运行 `AgentResult`/`ProtocolCodec` 示例。本次验收覆盖公共依赖解析、编译和基础 API 运行；具体Agent的实际业务接入按其任务集验收。
 
 实际发布 bundle 的 SHA-256 为 `d5396b16cdec8d5601ea2b9cde2ce53ed0fe173db598acee997326d8ed2df9f7`。正式公钥指纹为 `1F423457DBF791BF056AEB0A5A140871A03A12FC`，已在公钥服务器发布并核对。以下步骤供维护后续版本使用；本地构建测试密钥从未上传或用于正式发布。
 
-Central Portal 已验证 `io.github.nijikamori`。父 POM、协议和 SDK 的下一次发布将使用该命名空间。新坐标公开前，请继续使用下文的 `io.github.1993226871` 安装示例。
+新命名空间的发布包来自提交 `c151ad2`，对应部署 `bae02a70-f9a4-4a0f-a9ad-a1d4ad804065`，已发布。SDK 和协议的 POM、JAR 以及父 POM 均已确认可从 Maven Central 下载。 [GitHub 发布运行](https://github.com/nijikamori/veyraeval/actions/runs/43245931902)
 
 ## 1. 发布哪些组件
 
 | 坐标 | 发布文件 |
 | --- | --- |
-| `io.github.1993226871:veyraeval-platform:0.1.1` | 父 POM |
-| `io.github.1993226871:veyraeval-protocol:0.1.1` | POM、binary、sources、Javadoc |
-| `io.github.1993226871:veyraeval-sdk:0.1.1` | POM、binary、sources、Javadoc |
+| `io.github.nijikamori:veyraeval-platform:0.1.1` | 父 POM |
+| `io.github.nijikamori:veyraeval-protocol:0.1.1` | POM、binary、sources、Javadoc |
+| `io.github.nijikamori:veyraeval-sdk:0.1.1` | POM、binary、sources、Javadoc |
 
 总计9个 POM/jar，每个文件都带 PGP 签名和校验和。不发布 API、Worker、core、infrastructure 或示例组件。
 
@@ -122,7 +122,7 @@ Portal 的 VALIDATED 表示校验通过，**还未正式发布**。核对 deploy
 
 ```xml
 <dependency>
-  <groupId>io.github.1993226871</groupId>
+  <groupId>io.github.nijikamori</groupId>
   <artifactId>veyraeval-sdk</artifactId>
   <version>0.1.1</version>
 </dependency>

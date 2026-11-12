@@ -6,11 +6,11 @@ Run platform-assigned tasks in your own Java Agent. Capture visible tool/model c
 
 Requires JDK 21. Use `PushClient.login` to authenticate and pass the project name as the first argument to `startRun`. See the [push integration guide](https://github.com/nijikamori/veyraeval/blob/main/docs/guides/tasks-and-rule-sets.md) for the full flow.
 
-Version `0.1.1` is available from Maven Central:
+The example uses `io.github.nijikamori:veyraeval-sdk:0.1.1`. It is available from [Maven Central](https://central.sonatype.com/artifact/io.github.nijikamori/veyraeval-sdk/0.1.1). Java imports still use `io.agenteval`.
 
 ```xml
 <dependency>
-  <groupId>io.github.1993226871</groupId>
+  <groupId>io.github.nijikamori</groupId>
   <artifactId>veyraeval-sdk</artifactId>
   <version>0.1.1</version>
 </dependency>
@@ -18,7 +18,7 @@ Version `0.1.1` is available from Maven Central:
 
 ```kotlin
 repositories { mavenCentral() }
-dependencies { implementation("io.github.1993226871:veyraeval-sdk:0.1.1") }
+dependencies { implementation("io.github.nijikamori:veyraeval-sdk:0.1.1") }
 ```
 
 The protocol dependency and parent POM are also published. A fresh-cache independent Maven consumer has compiled and executed successfully. Runtime dependencies include Jackson and SQLite JDBC3.53.4.0; keep the SDK spool directory private to the Worker account.
@@ -107,7 +107,7 @@ Both SDKs consume the same versioned contracts and fixture manifest. The Java SD
 
 ## Registry publication
 
-Version `0.1.1` is published to Maven Central. The 9 POM/jar files and 9 PGP signatures for the parent, protocol and SDK were downloaded from the public repository and matched the approved CI bundle. See the [Java signing and Central guide](https://github.com/nijikamori/veyraeval/blob/main/docs/guides/maven-central.md) for release evidence and future releases. Consumers can use Maven/Gradle without a repository checkout. The Python SDK is also available on PyPI.
+The SDK, protocol, and parent POM are published to Maven Central under `io.github.nijikamori`. See the [Java signing and Central guide](https://github.com/nijikamori/veyraeval/blob/main/docs/guides/maven-central.md) for the deployment record.
 
 ## License
 

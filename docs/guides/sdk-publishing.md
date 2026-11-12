@@ -1,6 +1,6 @@
 # SDK 发布与依赖引入
 
-Python 使用 PyPI（用户通过 pip 安装），Java 使用 Maven Central（用户通过 Maven/Gradle 引入）。**Python SDK `veyraeval-sdk==0.1.2` 已发布到 PyPI 和 TestPyPI。Java SDK `io.github.1993226871:veyraeval-sdk:0.1.1` 已与协议包和父 POM 一起发布到 Maven Central。** 项目仓库、分支推送和 SDK 公开发布是不同操作，均应按各自授权执行。
+Python SDK `veyraeval-sdk==0.1.2` 已发布到 PyPI 和 TestPyPI。Java SDK `io.github.nijikamori:veyraeval-sdk:0.1.1` 已与协议包和父 POM 一起发布到 Maven Central。
 
 2026-10-27 发布的 Python `0.1.0` 来自提交 `4cb1c20c30086d5fac75435c29e2399d5488869e`。[TestPyPI 发布运行](https://github.com/nijikamori/veyraeval/actions/runs/40462602375)与[正式 PyPI 发布运行](https://github.com/nijikamori/veyraeval/actions/runs/40463092611)均通过环境审批后成功上传。两个站点的文件已重新下载并比对各自 CI 清单的 SHA-256，在全新环境中通过安装、依赖、导入和10份协议资源验证。不同运行会重新构建，两个站点的压缩包哈希不必相同；各自必须匹配对应发布运行的 manifest。
 
@@ -8,7 +8,7 @@ Python 使用 PyPI（用户通过 pip 安装），Java 使用 Maven Central（�
 
 ## 主动上报版本
 
-Python `0.1.2` 和 Java `0.1.1` 新增 `PushClient`，支持账号登录、按项目名自动创建项目，以及从 Agent 应用端上报运行和轨迹。已有的 Worker 接入方式继续可用。安装前可在 [PyPI](https://pypi.org/project/veyraeval-sdk/) 或 [Maven Central](https://central.sonatype.com/artifact/io.github.1993226871/veyraeval-sdk) 查询公开版本。
+Python `0.1.2` 和 Java `0.1.1` 新增 `PushClient`，支持账号登录、按项目名自动创建项目，以及从 Agent 应用端上报运行和轨迹。已有的 Worker 接入方式继续可用。安装前可在 [PyPI](https://pypi.org/project/veyraeval-sdk/) 或 [Maven Central](https://central.sonatype.com/artifact/io.github.nijikamori/veyraeval-sdk) 查询公开版本。
 
 ## Python 0.1.1 更新
 
@@ -21,11 +21,11 @@ Python `0.1.1` 新增 `EvaluationWorker.from_config(path, handler=...)`：从私
 | 项目 | 当前源码标识 | 发布前必须确认 |
 | --- | --- | --- |
 | Python 分发名 | `veyraeval-sdk`，源码版本 `0.1.2` | 已发布并验证；后续版本沿用已配置的 Trusted Publisher，每次上传仍单独审批。Python 导入名仍是 `agent_eval`。 |
-| Java SDK | `io.github.1993226871:veyraeval-sdk:0.1.1` | 已发布并通过全新缓存的独立消费项目验证；后续版本继续单独审批。 |
-| Java 协议 | `io.github.1993226871:veyraeval-protocol:0.1.1` | 已与 SDK 一起发布，消费者自动解析共享 DTO/Jackson 协议依赖。 |
-| Java 父 POM | `io.github.1993226871:veyraeval-platform:0.1.1`，类型 `pom` | 已发布以解析版本/BOM/许可证等继承元数据。没有发布 API、Worker、core 或 infrastructure jar。 |
+| Java SDK | `io.github.nijikamori:veyraeval-sdk:0.1.1` | 已发布，可从 Maven Central 下载 POM 和 JAR。 |
+| Java 协议 | `io.github.nijikamori:veyraeval-protocol:0.1.1` | 已随 SDK 发布，提供共享协议。 |
+| Java 父 POM | `io.github.nijikamori:veyraeval-platform:0.1.1`，类型 `pom` | 已随 SDK 发布，提供继承元数据。 |
 
-Central Portal 已验证新的 Maven 命名空间 `io.github.nijikamori`。父 POM、模块父引用和内部依赖已使用新的 groupId。上表和安装示例仍指向当前公开的坐标。Python 导入名 `agent_eval`、Java 包名 `io.agenteval.*` 和平台接入环境变量保持兼容。
+安装示例使用新的 Maven 坐标。Python 导入名 `agent_eval`、Java 包名 `io.agenteval.*` 和平台接入环境变量保持兼容。
 
 PyPI 与 Central 的公开 SDK 包会暴露其代码；私有 GitHub 仓库不会让公开注册表中的源码包变成私有。发布前也应确认公开范围、账号适用规则及上游依赖许可证。
 
@@ -124,14 +124,14 @@ PyPI 与 TestPyPI 均发布可公开下载的文件。测试上传也需要审�
 
 ```xml
 <dependency>
-  <groupId>io.github.1993226871</groupId>
+  <groupId>io.github.nijikamori</groupId>
   <artifactId>veyraeval-sdk</artifactId>
   <version>0.1.1</version>
 </dependency>
 ```
 
 ```kotlin
-implementation("io.github.1993226871:veyraeval-sdk:0.1.1")
+implementation("io.github.nijikamori:veyraeval-sdk:0.1.1")
 ```
 
 用户可按[Java接入](java-sdk.md)直接从 Maven Central 引入依赖，或按[Python接入](python-sdk.md)直接从 PyPI 安装，无需本地构建SDK。贡献者仍可使用源码构建方式开发。

@@ -87,7 +87,9 @@ flowchart LR
 <a id="sdk-preview"></a>
 ## SDK integration
 
-Python SDK `0.1.2` 和 Java SDK `0.1.1` 均可从公开仓库安装。应用通过 `PushClient.login` 登录平台，指定项目名，首次成功上报后平台自动创建项目。 [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.2/) · [Maven Central](https://central.sonatype.com/artifact/io.github.1993226871/veyraeval-sdk/0.1.1)
+Python SDK `0.1.2` 可从 PyPI 安装。应用通过 `PushClient.login` 登录平台，指定项目名，首次成功上报后平台自动创建项目。 [PyPI](https://pypi.org/project/veyraeval-sdk/0.1.2/)
+
+下方 Java 示例使用新坐标 `io.github.nijikamori:veyraeval-sdk:0.1.1`。现可从 Maven Central 安装。 [Maven Central](https://central.sonatype.com/artifact/io.github.nijikamori/veyraeval-sdk/0.1.1) · [Java SDK 接入指南](docs/guides/java-sdk.md)
 
 在平台发布评分规则并复制版本 ID，再按[应用主动上报指南](docs/guides/tasks-and-rule-sets.md)运行订单示例。以下代码演示已有 Worker 项目如何从平台领取任务。
 
@@ -119,7 +121,7 @@ finally:
 
 ```xml
 <dependency>
-  <groupId>io.github.1993226871</groupId>
+  <groupId>io.github.nijikamori</groupId>
   <artifactId>veyraeval-sdk</artifactId>
   <version>0.1.1</version>
 </dependency>
