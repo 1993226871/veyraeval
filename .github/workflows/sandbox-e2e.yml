@@ -20,7 +20,7 @@ permissions:
 jobs:
   hardened-isolation:
     # Dedicated ephemeral VM, no pull_request trigger and no repository secrets.
-    if: github.repository == '1993226871/veyraeval' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/'))
+    if: github.repository == 'nijikamori/veyraeval' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/'))
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:

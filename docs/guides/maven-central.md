@@ -2,11 +2,13 @@
 
 Java SDK `0.1.1` 已发布到 Maven Central，可通过 Maven 或 Gradle 引入。命名空间为 `io.github.1993226871`。 [Maven Central](https://central.sonatype.com/artifact/io.github.1993226871/veyraeval-sdk/0.1.1)
 
-`0.1.1` 来自提交 `f1e9b42`，对应 Portal 部署 `6f4b3a39-25c1-4ce7-b5de-b695e0db27d5`。从 Central 下载的 9 个 POM/JAR 和 9 份签名均与发布包一致。全新 Maven 缓存验证通过，独立 Java 21 项目可使用 `PushClient` 和共享协议。 [发布运行](https://github.com/1993226871/veyraeval/actions/runs/42850072986)
+`0.1.1` 来自提交 `f1e9b42`，对应 Portal 部署 `6f4b3a39-25c1-4ce7-b5de-b695e0db27d5`。从 Central 下载的 9 个 POM/JAR 和 9 份签名均与发布包一致。全新 Maven 缓存验证通过，独立 Java 21 项目可使用 `PushClient` 和共享协议。 [发布运行](https://github.com/nijikamori/veyraeval/actions/runs/42850072986)
 
-2026-10-27，[发布运行](https://github.com/1993226871/veyraeval/actions/runs/40474230908)将提交 `04058c37f61baa8f01fdd1f80a15314790ae1a53` 的签名包以 USER_MANAGED 提交 Portal，通过 VALIDATED 校验，部署 ID 为 `723fb6e8-5444-4715-a677-d78cedfaec32`。维护者在 Portal 执行正式发布后，已从公共仓库下载9个 POM/jar 和9份签名，逐一与该运行的 bundle 比对一致。独立项目使用全新 Maven 缓存，仅声明 SDK 依赖，成功从公共 Central 解析 SDK、protocol、父POM，编译并运行 `AgentResult`/`ProtocolCodec` 示例。本次验收覆盖公共依赖解析、编译和基础 API 运行；具体Agent的实际业务接入按其任务集验收。
+2026-10-27，[发布运行](https://github.com/nijikamori/veyraeval/actions/runs/40474230908)将提交 `04058c37f61baa8f01fdd1f80a15314790ae1a53` 的签名包以 USER_MANAGED 提交 Portal，通过 VALIDATED 校验，部署 ID 为 `723fb6e8-5444-4715-a677-d78cedfaec32`。维护者在 Portal 执行正式发布后，已从公共仓库下载9个 POM/jar 和9份签名，逐一与该运行的 bundle 比对一致。独立项目使用全新 Maven 缓存，仅声明 SDK 依赖，成功从公共 Central 解析 SDK、protocol、父POM，编译并运行 `AgentResult`/`ProtocolCodec` 示例。本次验收覆盖公共依赖解析、编译和基础 API 运行；具体Agent的实际业务接入按其任务集验收。
 
 实际发布 bundle 的 SHA-256 为 `d5396b16cdec8d5601ea2b9cde2ce53ed0fe173db598acee997326d8ed2df9f7`。正式公钥指纹为 `1F423457DBF791BF056AEB0A5A140871A03A12FC`，已在公钥服务器发布并核对。以下步骤供维护后续版本使用；本地构建测试密钥从未上传或用于正式发布。
+
+Central Portal 已验证 `io.github.nijikamori`。父 POM、协议和 SDK 的下一次发布将使用该命名空间。新坐标公开前，请继续使用下文的 `io.github.1993226871` 安装示例。
 
 ## 1. 发布哪些组件
 

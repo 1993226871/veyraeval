@@ -19,7 +19,7 @@ def verify(bundle: Path, public_key: Path, gpg: str = "gpg", msys_paths: bool = 
     root = Path(__file__).resolve().parents[1]
     ns = {"m": "http://maven.apache.org/POM/4.0.0"}
     version = ET.parse(root / "pom.xml").getroot().findtext("m:version", namespaces=ns)
-    group = "io/github/1993226871"
+    group = "io/github/nijikamori"
     artifacts = {"veyraeval-platform": ["pom"], "veyraeval-protocol": ["pom", "jar", "sources.jar", "javadoc.jar"], "veyraeval-sdk": ["pom", "jar", "sources.jar", "javadoc.jar"]}
     expected = set()
     for artifact, extensions in artifacts.items():

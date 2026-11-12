@@ -44,7 +44,7 @@ jobs:
           assert not version.endswith('-SNAPSHOT'), 'A release version is required'
           if os.environ['RELEASE_MODE'] != 'build':
               assert os.environ['GITHUB_REF'] == 'refs/heads/main', 'Signing and uploading require main'
-              assert os.environ['GITHUB_REPOSITORY'] == '1993226871/veyraeval', 'Unexpected repository'
+              assert os.environ['GITHUB_REPOSITORY'] == 'nijikamori/veyraeval', 'Unexpected repository'
           PY
       - run: chmod +x mvnw && ./mvnw -B --no-transfer-progress -P sdk-distribution -pl sdks/java -am clean verify
       - run: python scripts/verify_java_sdk_distribution.py

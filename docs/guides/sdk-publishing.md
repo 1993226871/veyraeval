@@ -2,9 +2,9 @@
 
 Python 使用 PyPI（用户通过 pip 安装），Java 使用 Maven Central（用户通过 Maven/Gradle 引入）。**Python SDK `veyraeval-sdk==0.1.2` 已发布到 PyPI 和 TestPyPI。Java SDK `io.github.1993226871:veyraeval-sdk:0.1.1` 已与协议包和父 POM 一起发布到 Maven Central。** 项目仓库、分支推送和 SDK 公开发布是不同操作，均应按各自授权执行。
 
-2026-10-27 发布的 Python `0.1.0` 来自提交 `4cb1c20c30086d5fac75435c29e2399d5488869e`。[TestPyPI 发布运行](https://github.com/1993226871/veyraeval/actions/runs/40462602375)与[正式 PyPI 发布运行](https://github.com/1993226871/veyraeval/actions/runs/40463092611)均通过环境审批后成功上传。两个站点的文件已重新下载并比对各自 CI 清单的 SHA-256，在全新环境中通过安装、依赖、导入和10份协议资源验证。不同运行会重新构建，两个站点的压缩包哈希不必相同；各自必须匹配对应发布运行的 manifest。
+2026-10-27 发布的 Python `0.1.0` 来自提交 `4cb1c20c30086d5fac75435c29e2399d5488869e`。[TestPyPI 发布运行](https://github.com/nijikamori/veyraeval/actions/runs/40462602375)与[正式 PyPI 发布运行](https://github.com/nijikamori/veyraeval/actions/runs/40463092611)均通过环境审批后成功上传。两个站点的文件已重新下载并比对各自 CI 清单的 SHA-256，在全新环境中通过安装、依赖、导入和10份协议资源验证。不同运行会重新构建，两个站点的压缩包哈希不必相同；各自必须匹配对应发布运行的 manifest。
 
-同日发布的 Java `0.1.0` 来自提交 `04058c3`。[Portal上传校验运行](https://github.com/1993226871/veyraeval/actions/runs/40474230908)通过后由维护者在Portal执行正式发布。9个POM/jar及9份签名已从公开Central重新下载并逐一匹配CI bundle，独立项目使用全新Maven缓存编译、运行通过。详细签名与部署记录见[Java发布指南](maven-central.md)。
+同日发布的 Java `0.1.0` 来自提交 `04058c3`。[Portal上传校验运行](https://github.com/nijikamori/veyraeval/actions/runs/40474230908)通过后由维护者在Portal执行正式发布。9个POM/jar及9份签名已从公开Central重新下载并逐一匹配CI bundle，独立项目使用全新Maven缓存编译、运行通过。详细签名与部署记录见[Java发布指南](maven-central.md)。
 
 ## 主动上报版本
 
@@ -25,7 +25,7 @@ Python `0.1.1` 新增 `EvaluationWorker.from_config(path, handler=...)`：从私
 | Java 协议 | `io.github.1993226871:veyraeval-protocol:0.1.1` | 已与 SDK 一起发布，消费者自动解析共享 DTO/Jackson 协议依赖。 |
 | Java 父 POM | `io.github.1993226871:veyraeval-platform:0.1.1`，类型 `pom` | 已发布以解析版本/BOM/许可证等继承元数据。没有发布 API、Worker、core 或 infrastructure jar。 |
 
-已选定 `io.github.1993226871` 为 Maven groupId，并同步父 POM、所有模块父引用、内部依赖和公开接入文档；维护者已确认该 namespace 为 Verified。品牌及分发包统一为 VeyraEval；Python 导入名 `agent_eval`、Java 包名 `io.agenteval.*` 和平台接入环境变量保持兼容，不随分发坐标更名。
+Central Portal 已验证新的 Maven 命名空间 `io.github.nijikamori`。父 POM、模块父引用和内部依赖已使用新的 groupId。上表和安装示例仍指向当前公开的坐标。Python 导入名 `agent_eval`、Java 包名 `io.agenteval.*` 和平台接入环境变量保持兼容。
 
 PyPI 与 Central 的公开 SDK 包会暴露其代码；私有 GitHub 仓库不会让公开注册表中的源码包变成私有。发布前也应确认公开范围、账号适用规则及上游依赖许可证。
 

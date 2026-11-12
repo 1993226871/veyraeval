@@ -8,7 +8,7 @@ NS = {"m": "http://maven.apache.org/POM/4.0.0"}
 parent = ET.parse(ROOT / "pom.xml").getroot()
 version = parent.findtext("m:version", namespaces=NS)
 assert parent.findtext("m:artifactId", namespaces=NS) == "veyraeval-platform", "Parent POM must use the VeyraEval name"
-group = "io.github.1993226871"
+group = "io.github.nijikamori"
 assert parent.findtext("m:groupId", namespaces=NS) == group, "Parent POM must use the approved publishing namespace"
 for source in (ROOT / "pom.xml", *ROOT.glob("platform/*/pom.xml"), ROOT / "sdks/java/pom.xml", ROOT / "examples/java-order-agent/pom.xml"):
     model = ET.parse(source).getroot()
